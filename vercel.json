@@ -12,10 +12,6 @@
   "routes": [{
       "src": "/v1/(.*)",
       "dest": "index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "index.js"
     }
   ]
 }
