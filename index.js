@@ -1,0 +1,28 @@
+import cors from "cors";
+import express from "express";
+
+const app = express();
+const port = 4000;
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
+    credentials: true,
+    allowedHeaders: "Content-Type, Authorization",
+  })
+);
+app.use(express.json());
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
+});
+app.get('/', (req, res) => {
+  console.log('Example endpoint hit');
+  res.send('This is an example endpoint!');
+});
+
+// app.use("/v1", createRouter());
+
+app.listen(port, () => {
+  console.log(`APP listening on port:${port}`);
+});
