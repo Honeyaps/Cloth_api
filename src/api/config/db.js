@@ -20,8 +20,8 @@ const storage = getStorage(app);
 // MongoDB connection using mongoose
 export const dbconnection = () => {
   const options = {
-    serverSelectionTimeoutMS: 10000,
-    connectTimeoutMS: 20000, 
+    serverSelectionTimeoutMS: 20000,
+    connectTimeoutMS: 60000, 
   };
   mongoose
     .connect(env.MONGO_URL, options)
