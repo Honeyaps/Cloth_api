@@ -47,7 +47,6 @@ export async function sendPassResetEmail({ email, OTP }) {
     };
 
     const info = await transporter.sendMail(mailConfig);
-    console.log("OTP sent:", info);
   } catch (error) {
     console.error("Error sending mail:", error);
     throw new Error("Failed to send OTP");
@@ -87,7 +86,6 @@ export async function sendSignupEmail({ email, OTP }) {
     };
 
     const info = await transporter.sendMail(mailConfig);
-    console.log("OTP sent:", info);
   } catch (error) {
     console.error("Error sending signup email:", error);
     throw new Error("Could not send signup verification email.");
