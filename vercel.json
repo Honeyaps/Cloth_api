@@ -11,6 +11,11 @@
   ],
   "routes": [{
       "src": "/v1/(.*)",
-      "dest": "server/index.js"
-    }]
+      "dest": "index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "index.js"
+    }
+  ]
 }
