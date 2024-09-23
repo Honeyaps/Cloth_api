@@ -18,12 +18,12 @@ const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 
 // MongoDB connection using mongoose
-export const dbconnection = () => {
+export const dbconnection = async() => {
   const options = {
     serverSelectionTimeoutMS: 20000,
     connectTimeoutMS: 60000, 
   };
-  mongoose
+  await mongoose
     .connect(env.MONGO_URL, options)
     .then((res) => {
       console.log(`Mongo DB Connected Successfully. ` + env.MONGO_URL);
