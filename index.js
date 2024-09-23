@@ -25,6 +25,7 @@ app.get('/', (req, res) => {
   res.send('This is an example endpoint!');
 });
 
+
 app.use("/v1", createRouter());
 
 app.listen(port, () => {
