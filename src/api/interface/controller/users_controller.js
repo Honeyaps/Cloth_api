@@ -15,7 +15,7 @@ export const UserOtpGenerate = async (req, res) => {
 
     const otp = Math.floor(1000 + Math.random() * 9000);
    
-    await sendSignupEmail({ email, OTP: otp }),
+    sendSignupEmail({ email, OTP: otp }),
     await userSignup.updateOne(
         { email }, 
         { otp, otpExpiration: Date.now() + 10 * 60 * 1000},  
