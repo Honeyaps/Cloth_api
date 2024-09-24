@@ -6,10 +6,10 @@ import { addProduct, adminSignin, getDashboardInsights, multiple } from "../cont
 
 export const adminRoute = (router) => {
 
-    router.post("/admin/signin",validateRequest(getDashboardInsightsValidate), adminSignin);
+    router.post("/admin/signin", validateRequest(getDashboardInsightsValidate), adminSignin);
 
     router.post("/admin/addProduct", Auth, multiple, addProduct);
 
-    router.post("/admin/getDashboardInsights",validateRequest(getDashboardInsightsValidate), getDashboardInsights);
+    router.post("/admin/getDashboardInsights", validateRequest(getDashboardInsightsValidate), getDashboardInsights);
 
 }

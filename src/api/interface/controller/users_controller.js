@@ -421,6 +421,19 @@ export const placeCartOrder = async (req, res) => {
   }
 };
 
+export const getsuggestedproducts = async (req, res) => {
+  try {
+    const product = await cart
+      .find({ status: -9 })
+      .lean();
+
+    return SuccessResponse(res, "Products found successfully.", { product });
+  } catch (error) {
+    console.error(error);
+    return ErrorResponse(res, "An error occurred while fetching products.");
+  }
+}
+
 
   
 
