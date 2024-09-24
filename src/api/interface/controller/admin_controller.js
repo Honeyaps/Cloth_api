@@ -6,6 +6,8 @@ import { storage } from "../../config/db.js";
 import moment from "moment";
 import { ErrorResponse, SuccessResponse } from "../../config/helpers/apiResponse.js";
 import addProducts from "../../config/schema/adminAddProduct.schema.js";
+import userSignup from "../../config/schema/userSignup.schema.js";
+import order from "../../config/schema/order.schema.js";
 
 // Setup multer for image upload
 const upload = multer({ storage: multer.memoryStorage() });
@@ -96,4 +98,67 @@ export const addProduct = async (req, res) => {
   }
 };
 
+
+export const getDashboardInsights = async (req, res) => {
+  try {
+    const { start_date_time, end_date_time } = req.body; 
+
+    const start = moment(start_date_time).startOf('day').toDate();
+    const end = moment(end_date_time).endOf('day').toDate();
+
+    const totalUsers = await userSignup.countDocuments({});
+
+    const activeUsers = await userSignup.countDocuments({ status: 1 });
+
+    const totalOrders = await order.countDocuments({
+      insert_date_time: {$gte: start,$lte: end,},
+    });
+
+    const totalRevenue = await order.aggregate([
+      { $match: {insert_date_time: {$gte: start,$lte: end}}},
+      { $unwind: "$productDetails" },
+      { $group: { _id: null, total: { $sum: "$productDetails.price"  } } }
+    ]);
+
+    const totalProductsSold = await order.aggregate([
+      { $match: {insert_date_time: {$gte: start,$lte: end}}},
+      { $group: { _id: null, totalSold: { $sum: '$totalQuantity' } } }
+    ]);
+
+    const soldOutcategories = await order.aggregate([
+      {$match: {insert_date_time: { $gte: start, $lte: end }}},
+      {$project: {categoryQuantities: { $objectToArray: "$categoryQuantities" }} },
+      {$unwind: "$categoryQuantities"},
+      {$group: {_id: "$categoryQuantities.k",total: { $sum: "$categoryQuantities.v" }} }
+    ]);
+    
+    const totalcategorieProducts = await addProducts.aggregate([
+      { $group: { _id: '$category', count: { $sum: 1 } } }
+    ]);
+
+    const averageOrderQuantity = totalOrders > 0 ? totalProductsSold[0].totalSold / totalOrders : 0;
+
+    const revenueByCategory = await order.aggregate([
+      { $match: { insert_date_time: { $gte: start, $lte: end } } },
+      { $unwind: "$productDetails" },
+      { $group: { _id: "$productDetails.category", totalRevenue: { $sum: "$productDetails.price" } } }
+    ]);
+    
+    return SuccessResponse(res, "Dashboard insights fetched successfully.", {
+      totalUsers,
+      activeUsers,
+      totalOrders,
+      averageOrderQuantity,
+      totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0,
+      totalProductsSold: totalProductsSold.length > 0 ? totalProductsSold[0].totalSold : 0,
+      revenueByCategory,
+      soldOutcategories,
+      totalcategorieProducts,
+    });
+
+  } catch (error) {
+    console.error(error);
+    return ErrorResponse(res, "An error occurred while fetching the dashboard insights.");
+  }
+};
     

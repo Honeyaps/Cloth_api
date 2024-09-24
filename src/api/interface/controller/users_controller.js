@@ -13,11 +13,6 @@ export const UserOtpGenerate = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const existingUser = await userSignup.findOne({ email });
-    if (existingUser) {
-      return ErrorResponse(res, 'Email is already registered.');
-    }
-
     const otp = Math.floor(1000 + Math.random() * 9000);
    
     sendSignupEmail({ email, OTP: otp }),
@@ -176,23 +171,38 @@ export const UserUpdatePass = async (req, res) => {
 
 export const getProductData = async (req, res) => {
   try {
-    const page = req.body.page || null; 
-    const limit = req.body.limit || null; 
+    const { page, limit, productName, category, priceRange } = req.body;
 
-    const skip = (page - 1) * limit;
-    
+    const filter = {};
+    if (productName) {
+      filter.productName = { $regex: new RegExp(productName, 'i') }; 
+    }
+    if (category) {
+      filter.category = { $regex: new RegExp(category, 'i') }; 
+    }
+
+    let sort = {};
+    if (priceRange === "h2l") {
+      sort.price = -1; 
+    } else if (priceRange === "l2h") {
+      sort.price = 1;  
+    }
+
+    const skip = (page - 1) * limit; 
     const product = await addProducts
-    .find({})
-    .skip(skip)
-    .limit(limit)
-    .lean();
+      .find(filter) 
+      .skip(skip)  
+      .limit(limit)
+      .sort(sort)
+      .lean();     
 
-    return SuccessResponse(res, "Product found successfully.", { product });
+    return SuccessResponse(res, "Products found successfully.", { product });
   } catch (error) {
     console.error(error);
-    return ErrorResponse(res, "An error occurred while finding the product.");
+    return ErrorResponse(res, "An error occurred while fetching the product data.");
   }
-  }
+};
+
 
 
   export const addToCart = async (req, res) => {
@@ -230,6 +240,7 @@ export const getProductData = async (req, res) => {
                   image: product.image,
                   description: product.description,
                   category: product.category,
+                  quantity: product.quantity,
               }
           };
           await cart.create(newCartItem);
@@ -239,7 +250,7 @@ export const getProductData = async (req, res) => {
             .populate({
                 path: 'productId',
                 model: 'addProduct_admin',
-                select: 'productName price image description category',
+                select: 'productName price image description category quantity',
             })
             .populate({
                 path: 'userId',
@@ -318,16 +329,17 @@ export const buyNow = async (req, res) => {
       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
       address,
       mobileno,
-      userDetail: {
+      userDetails: {
         username: user.username,
         email: user.email,
       },
-      productDetail: {
+      productDetails: {
         productName: product.productName,
         description: product.description,
         price: product.price,
         image: product.image,
         category: product.category,
+        quantity: product.quantity,
       },
     };
     const newOrder = new order(orderData);
@@ -361,11 +373,29 @@ export const placeCartOrder = async (req, res) => {
       return ErrorResponse(res, "Cart is empty.");
     }
 
+    const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    const categoryQuantities = {};
+
+    
+    cartItems.forEach(item => {
+      const category = item.productId.category; 
+      const quantity = item.quantity; 
+      if (!category) {
+        console.warn(`No category found for product ID: ${item.productId._id}`);
+        return; 
+      }
+      if (!categoryQuantities[category]) {
+        categoryQuantities[category] = 0; 
+      }
+      categoryQuantities[category] += quantity;
+    });
+
     const orderData = {
       userId,
       mobileno,
       address,
       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+      totalQuantity,
       userDetails: {
         username: user.username,
         email: user.email,
@@ -378,6 +408,7 @@ export const placeCartOrder = async (req, res) => {
         image: item.productId.image,
         category: item.productId.category,
       })),
+      categoryQuantities,
     };
     const newOrder = new order(orderData);
     await newOrder.save();

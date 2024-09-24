@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { env } from '../../infrastructure/env';
+import env from '../../infrastructure/env.js';
 
 export const Auth = (req, res, next) => {
     const authHeader = req.headers.authorization;
