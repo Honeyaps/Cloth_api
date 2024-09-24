@@ -2,6 +2,7 @@ import env from "../../../infrastructure/env.js";
 import { ErrorResponse, SuccessResponse } from "../../config/helpers/apiResponse.js";
 import addProducts from "../../config/schema/adminAddProduct.schema.js";
 import cart from "../../config/schema/cart.schema.js";
+import order from "../../config/schema/order.schema.js";
 import userSignup from "../../config/schema/userSignup.schema.js";
 import { sendPassResetEmail, sendSignupEmail } from "../../lib/mailer.js";
 import bcrypt from "bcrypt";
@@ -193,50 +194,202 @@ export const getProductData = async (req, res) => {
   }
   }
 
+
   export const addToCart = async (req, res) => {
     try {
-      const userId = req.body.userId;
-      const productId = req.body.productId;
-      const insert_date_time = moment().format("YYYY-MM-DD HH:mm:ss");
-  
-      const product = await addProducts.findById(productId);
-      if (!product) {
-        return ErrorResponse(res, "Product not found.");
-      }
-      const user = await userSignup.findById(userId);
-      if (!user) {
-        return ErrorResponse(res, "User not found.");
-      }
-      const cartItem = await cart.findOne({ userId, productId });
-      if (cartItem) {
-        cartItem.quantity += 1;
-        await cartItem.save();
-      } else {
-        await cart.create({ userId, productId, quantity: 1, insert_date_time, });
-      }
+        const userId = req.body.userId;
+        const productId = req.body.productId;
 
-      const updatedCart = await cart
-        .find({ userId })
-        .populate({
-          path: 'productId', 
-          model: 'addProduct_admin', 
-          select: 'productName price image description category',
-        })
-        .populate({
-          path: 'userId',
-          model: 'signup_user',
-          select: 'username email'
-        })
-        .exec();
-  
-      return SuccessResponse(res, "Product added to cart successfully.", {
-        cart: updatedCart
-      });
+        const product = await addProducts.findById(productId);
+        if (!product) {
+            return ErrorResponse(res, "Product not found.");
+        }
+        const user = await userSignup.findById(userId);
+        if (!user) {
+            return ErrorResponse(res, "User not found.");
+        }
+
+        const cartItem = await cart.findOne({ userId, productId });
+        if (cartItem) {
+            cartItem.quantity += 1;
+            await cartItem.save();
+        } else {
+            const newCartItem = {
+              userId,
+              productId,
+              quantity: 1,
+              status: 1,
+              insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+              userDetail: {
+                  username: user.username,
+                  email: user.email,
+              },
+              productDetail: {
+                  productName: product.productName,
+                  price: product.price,
+                  image: product.image,
+                  description: product.description,
+                  category: product.category,
+              }
+          };
+          await cart.create(newCartItem);
+        }
+
+        const updatedCart = await cart.find({ userId })
+            .populate({
+                path: 'productId',
+                model: 'addProduct_admin',
+                select: 'productName price image description category',
+            })
+            .populate({
+                path: 'userId',
+                model: 'signup_user',
+                select: 'username email'
+            })
+            .exec();
+
+        return SuccessResponse(res, "Product added to cart successfully.", { cart: updatedCart });
     } catch (error) {
-      console.error(error);
-      return ErrorResponse(res, "An error occurred while adding the product to cart.");
+        console.error(error);
+        return ErrorResponse(res, "An error occurred while adding the product to cart.");
     }
+};
+
+export const removeFromCart = async (req, res) => {
+  try {
+    const { userId, productId } = req.body;
+    
+    const cartItem = await cart.findOne({ userId, productId });
+    if (!cartItem) {
+      return ErrorResponse(res, "Cart item not found.");
+    }
+
+    cartItem.status = -9;
+    cartItem.softDeleteDate = new Date(); 
+    await cartItem.save();
+
+    setTimeout(async () => {
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+      try {
+        const itemToDelete = await cart.findOne({
+          _id: cartItem._id,
+          status: -9,
+          softDeleteDate: { $lte: twoDaysAgo },
+        });
+
+        if (itemToDelete) {
+          await cart.deleteOne({ _id: itemToDelete._id });
+          console.log(`Item with id ${cartItem._id} permanently deleted after 1 minute`);
+        }
+      } catch (deleteError) {
+        console.error("Error during scheduled deletion:", deleteError);
+      }
+    }, 2 * 24 * 60 * 60 * 1000);
+
+    return SuccessResponse(res, "Cart item marked for deletion (soft delete). It will be permanently removed after 2 days.", { cartItem });
+  } catch (error) {
+    console.error(error);
+    return ErrorResponse(res, "An error occurred while removing the cart item.");
   }
+};
+
+export const buyNow = async (req, res) => {
+  try {
+    const { userId, productId, address, mobileno } = req.body;
+
+    const product = await addProducts.findById(productId);
+    if (!product) {
+      return ErrorResponse(res, "Product not found.");
+    }
+    const user = await userSignup.findById(userId);
+    if (!user) {
+      return ErrorResponse(res, "User not found.");
+    }
+    const existingOrder = await order.findOne({ userId, productId });
+    if (existingOrder) {
+      return ErrorResponse(res, "Order for this product already exists.");
+    }
+
+    const orderData = {
+      userId,
+      productId,
+      insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+      address,
+      mobileno,
+      userDetail: {
+        username: user.username,
+        email: user.email,
+      },
+      productDetail: {
+        productName: product.productName,
+        description: product.description,
+        price: product.price,
+        image: product.image,
+        category: product.category,
+      },
+    };
+    const newOrder = new order(orderData);
+    await newOrder.save();
+
+    return SuccessResponse(res, "Order placed successfully", { order: newOrder });
+  } catch (error) {
+    console.error(error);
+    return ErrorResponse(res, "An error occurred while placing the order.");
+  }
+};
+
+export const placeCartOrder = async (req, res) => {
+  try {
+    const { userId, mobileno, address } = req.body;
+
+    const user = await userSignup.findById(userId);
+    if (!user) {
+      return ErrorResponse(res, "User not found.");
+    }
+
+    const cartItems = await cart
+      .find({ userId })
+      .populate({
+        path: 'productId',  
+        model: 'addProduct_admin',
+        select: 'productName price image description category', 
+      })
+      .exec();
+    if (cartItems.length === 0) {
+      return ErrorResponse(res, "Cart is empty.");
+    }
+
+    const orderData = {
+      userId,
+      mobileno,
+      address,
+      insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+      userDetails: {
+        username: user.username,
+        email: user.email,
+      },
+      productDetails: cartItems.map(item => ({
+        productId: item.productId._id,
+        productName: item.productId.productName,
+        description: item.productId.description,
+        price: item.productId.price,
+        image: item.productId.image,
+        category: item.productId.category,
+      })),
+    };
+    const newOrder = new order(orderData);
+    await newOrder.save();
+    await cart.deleteMany({ userId });
+    
+    return SuccessResponse(res, "Order placed successfully", { order: newOrder });
+  } catch (error) {
+    console.error(error);
+    return ErrorResponse(res, "An error occurred while placing the order.");
+  }
+};
+
 
   
 

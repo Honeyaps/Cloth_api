@@ -121,3 +121,59 @@ export const UserUpdatePassValidate = object({
       .required("Password is required"),
   }),
 })
+
+export const addToCartValidate = object({
+  body: object({
+    productId: string()
+      .required("Product ID is required"),
+
+    userId: string()
+      .required("User ID is required"),
+  }),
+})
+
+export const buyNowValidate = object({
+  body: object({
+    productId: string()
+      .required("Product ID is required"),
+
+    userId: string()
+      .required("User ID is required"),
+
+    address: string()
+      .required("Address is required"),
+
+    mobileno: string()
+    .max(10, "Mobile number cannot exceed 10 characters")
+    .min(10, "Mobile number must be at least 10 characters long")
+    .matches(/^[0-9]+$/, "Mobile number can only contain numbers")
+    .required("Mobile number is required"),
+  }),
+})
+
+
+export const placeCartOrderValidate = object({
+  body: object({
+    userId: string()
+      .required("User ID is required"),
+
+    address: string()
+      .required("Address is required"),
+
+    mobileno: string()
+    .max(10, "Mobile number cannot exceed 10 characters")
+    .min(10, "Mobile number must be at least 10 characters long")
+    .matches(/^[0-9]+$/, "Mobile number can only contain numbers")
+    .required("Mobile number is required"),
+  }),
+})
+
+export const removeFromCartValidate = object({
+  body: object({
+    productId: string()
+      .required("Product ID is required"),
+
+    userId: string()
+      .required("User ID is required"),
+  }),
+})

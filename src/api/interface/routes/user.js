@@ -1,6 +1,9 @@
 import {
   addToCart,
+  buyNow,
   getProductData,
+  placeCartOrder,
+  removeFromCart,
   UserLogout,
   UserOtpForPass,
   UserOtpGenerate,
@@ -9,7 +12,17 @@ import {
   UserUpdatePass,
 } from "../controller/users_controller.js";
 import validateRequest from "../../config/helpers/validateRequest.js";
-import { UserLogoutValidate, UserOtpForPassValidate, UserOtpGenerateValidate, UserSigninValidate, UserSignupValidate, UserUpdatePassValidate } from "../../config/helpers/validators.js";
+import { addToCartValidate,
+    buyNowValidate,
+    placeCartOrderValidate,
+    removeFromCartValidate,
+    UserLogoutValidate, 
+    UserOtpForPassValidate, 
+    UserOtpGenerateValidate, 
+    UserSigninValidate, 
+    UserSignupValidate, 
+    UserUpdatePassValidate 
+} from "../../config/helpers/validators.js";
 
 export const UserRoute = (router) => {
   // for user to signup generate otp
@@ -28,5 +41,11 @@ export const UserRoute = (router) => {
 
   router.post("/user/getProducts", getProductData);
 
-  router.post("/user/addToCart", addToCart);
+  router.post("/user/addToCart",validateRequest(addToCartValidate), addToCart);
+
+  router.post("/user/removeFromCart",validateRequest(removeFromCartValidate), removeFromCart);
+
+  router.post("/user/placeCartOrder",validateRequest(placeCartOrderValidate), placeCartOrder);
+
+  router.post("/user/buynow",validateRequest(buyNowValidate), buyNow);
 };
