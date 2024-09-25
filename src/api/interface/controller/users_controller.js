@@ -57,7 +57,7 @@ export const UserSignup = async (req, res) => {
     const savedUser = await user.save();
     const token = jwt.sign({ id: savedUser._id.toHexString() }, env.JWT_SECRET, { expiresIn: '2d' });
 
-    return SuccessResponse(res, "User registered successfully", { user: savedUser, token });
+    return SuccessResponse(res, "User registered successfully", { user: { ...savedUser._doc, password: undefined }, token });
   } catch (error) {
     console.error(error);
     return ErrorResponse(res, "An error occurred during OTP verification.");
@@ -88,7 +88,7 @@ export const UserSignin = async (req, res) => {
       { $set: { status: 1 } } 
     );
 
-    return SuccessResponse(res, "User logged in successfully", {user, token});
+    return SuccessResponse(res, "User logged in successfully", {user:{ ...user._doc, password: undefined }, token});
   } catch (error) {
     console.error(error);
     return ErrorResponse(res, "An error occurred while logging in.");
@@ -161,7 +161,7 @@ export const UserUpdatePass = async (req, res) => {
     user.otpExpiration = undefined; 
     await user.save();
 
-    return SuccessResponse(res, "Password updated successfully.", { user });
+    return SuccessResponse(res, "Password updated successfully.", { email });
   }
   catch (error) {
     console.error(error);
