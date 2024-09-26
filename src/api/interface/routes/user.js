@@ -1,8 +1,8 @@
 import {
   addToCart,
   buyNow,
+  getCartItems,
   getProductData,
-  getsuggestedproducts,
   placeCartOrder,
   removeFromCart,
   UserLogout,
@@ -15,6 +15,7 @@ import {
 import validateRequest from "../../config/helpers/validateRequest.js";
 import { addToCartValidate,
     buyNowValidate,
+    getCartItemsValidate,
     placeCartOrderValidate,
     removeFromCartValidate,
     UserLogoutValidate, 
@@ -43,7 +44,7 @@ export const UserRoute = (router) => {
 
   router.post("/user/getProducts", getProductData);
 
-  router.post("/user/suggestedProducts", Auth, getsuggestedproducts);
+  router.post("/user/getCartItems", Auth, validateRequest(getCartItemsValidate), getCartItems);
 
   router.post("/user/addToCart", Auth, validateRequest(addToCartValidate), addToCart);
 

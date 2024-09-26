@@ -187,3 +187,10 @@ export const adminSigninValidate = object({
       .required("Password is required"),  
   }),
 })
+
+export const getCartItemsValidate = object({
+  body: object({
+    userId: string()
+      .required("User ID is required"),
+  }),
+})

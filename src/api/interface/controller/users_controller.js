@@ -421,10 +421,14 @@ export const placeCartOrder = async (req, res) => {
   }
 };
 
-export const getsuggestedproducts = async (req, res) => {
+
+
+export const getCartItems = async (req, res) => {
   try {
+    const userId = req.body.userId;
+
     const product = await cart
-      .find({ status: -9 })
+      .find({ userId })
       .lean();
 
     return SuccessResponse(res, "Products found successfully.", { product });
