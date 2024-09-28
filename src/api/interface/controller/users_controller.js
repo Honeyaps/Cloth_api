@@ -15,12 +15,14 @@ export const UserOtpGenerate = async (req, res) => {
 
     const otp = Math.floor(1000 + Math.random() * 9000);
    
-    sendSignupEmail({ email, OTP: otp }),
-    await userSignup.updateOne(
-        { email }, 
-        { otp, otpExpiration: Date.now() + 10 * 60 * 1000},  
-        { upsert: true } 
-    )
+    await Promise.all([
+      sendSignupEmail({ email, OTP: otp }),
+      userSignup.updateOne(
+        { email },
+        { otp, otpExpiration: Date.now() + 10 * 60 * 1000 },  
+        { upsert: true }
+      )
+    ]);
     
     return SuccessResponse(res, 'OTP sent to your email. Please verify to complete registration.', { email });
   } catch (error) {
