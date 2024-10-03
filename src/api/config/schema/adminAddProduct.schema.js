@@ -2,12 +2,13 @@ import mongoose from "mongoose";
 
 const addProductSchema = new mongoose.Schema(
     {
-        productName: { type: String, required: true },
-        description: { type: String, required: true },
-        price: { type: Number, required: true },
-        image: { type: String, required: true },
-        category: { type: String, required: true },
-        quantity: { type: Number, required: true },
+        productName: { type: String,},
+        description: { type: String,},
+        price: { type: Number, },
+        card_pic: { type: String, },
+        images: { type: [String], default: [] }, 
+        category: { type: String },
+        quantity: { type: Number },
         insert_date_time: { type: Date, default: Date.now },
         update_date_time: { type: Date },
     },

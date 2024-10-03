@@ -11,7 +11,10 @@ import order from "../../config/schema/order.schema.js";
 
 // Setup multer for image upload
 const upload = multer({ storage: multer.memoryStorage() });
-export let multiple = [upload.single("image")];
+export let multiple = upload.fields([
+  { name: 'card_pic', maxCount: 1 }, // Only one card picture
+  { name: 'images', maxCount: 4 }    // Up to four additional images
+]);
 
 export const adminSignin = async (req, res) => {
   try {
@@ -31,70 +34,120 @@ export const adminSignin = async (req, res) => {
   }
 };
 
+
 export const addProduct = async (req, res) => {
   try {
-    const { id } = req.body;
     const reqData = {
       productName: req.body.productName,
       description: req.body.description,
       price: req.body.price,
       category: req.body.category,
       quantity: req.body.quantity,
-      image: req.file?.path,
+      card_pic: null, 
+      images: [],
+      insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
     };
 
-    let existingImageUrl = null;
-
-    if (id) {
-      const existingProduct = await addProducts.findById(id);
-      if (existingProduct) {
-        existingImageUrl = existingProduct.image;
-      }
-    }
-
-    if (req.file) {
-      const dataTime = Date.now();
-      const storageRef = ref(
-        storage,
-        `product_img/${req.file.originalname + " " + dataTime}`
-      );
+    if (req.files?.card_pic && req.files.card_pic.length > 0) {
+      const cardPicFile = req.files.card_pic[0];
+      const storageRef = ref(storage, `product_card_img/${Date.now()}_${cardPicFile.originalname}`);
       const metadata = {
-        contentType: req.file.mimetype,
+        contentType: cardPicFile.mimetype,
       };
-      const snapshot = await uploadBytesResumable(
-        storageRef,
-        req.file.buffer,
-        metadata
-      );
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      const uploadSnapshot = await uploadBytesResumable(storageRef, cardPicFile.buffer, metadata);
+      reqData.card_pic = await getDownloadURL(uploadSnapshot.ref);
+    } else {
+      return ErrorResponse(res, "Card picture is required.");
+    }
 
-      if (existingImageUrl) {
-        const existingImageRef = ref(storage, existingImageUrl);
-        await deleteObject(existingImageRef); 
+    if (req.files?.images) {
+      const uploadPromises = req.files.images.slice(0, 4).map(async (imageFile) => {
+        const storageRef = ref(storage, `product_img/${Date.now()}_${imageFile.originalname}`);
+        const metadata = {
+          contentType: imageFile.mimetype,
+        };
+        const uploadSnapshot = await uploadBytesResumable(storageRef, imageFile.buffer, metadata);
+        const imageDownloadURL = await getDownloadURL(uploadSnapshot.ref);
+        
+        return imageDownloadURL; 
+      });
+
+      reqData.images = await Promise.all(uploadPromises);
+    }
+
+    const newProduct = new addProducts(reqData);
+    const savedProduct = await newProduct.save();
+
+    return SuccessResponse(res, "Product added successfully", { ...savedProduct.toObject() });
+  } catch (error) {
+    console.error("Error adding product:", error); // Improved error logging
+    return ErrorResponse(res, "An error occurred while adding the product. Please try again later.");
+  }
+};
+
+
+
+export const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    const existingProduct = await addProducts.findById(id);
+    if (!existingProduct) {
+      return ErrorResponse(res, "Product not found.");
+    }
+
+    const reqData = {
+      productName: req.body.productName || existingProduct.productName,
+      description: req.body.description || existingProduct.description,
+      price: req.body.price || existingProduct.price,
+      category: req.body.category || existingProduct.category,
+      quantity: req.body.quantity || existingProduct.quantity,
+      update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+      card_pic: existingProduct.card_pic,
+      images: [] 
+    };
+
+    if (req.files?.card_pic && req.files.card_pic.length > 0) {
+      const cardPicFile = req.files.card_pic[0];
+      const storageRef = ref(storage, `product_card_img/${Date.now()}_${cardPicFile.originalname}`);
+      const metadata = {
+        contentType: cardPicFile.mimetype,
+      };
+
+      const uploadSnapshot = await uploadBytesResumable(storageRef, cardPicFile.buffer, metadata);
+      reqData.card_pic = await getDownloadURL(uploadSnapshot.ref);
+
+      if (existingProduct.card_pic) {
+        const existingCardPicRef = ref(storage, existingProduct.card_pic);
+        await deleteObject(existingCardPicRef);
+      }
+    }
+
+    if (req.files?.images) {
+      if (existingProduct.images.length > 0) {
+        const existingImageRefs = existingProduct.images.map(image => ref(storage, image));
+        await Promise.all(existingImageRefs.map(ref => deleteObject(ref)));
       }
 
-      reqData.image = downloadURL; 
-    } else if (existingImageUrl) {
-      reqData.image = existingImageUrl; 
+      const uploadPromises = req.files.images.slice(0, 4).map(async (imageFile) => {
+        const storageRef = ref(storage, `product_img/${Date.now()}_${imageFile.originalname}`);
+        const metadata = {
+          contentType: imageFile.mimetype,
+        };
+
+        const uploadSnapshot = await uploadBytesResumable(storageRef, imageFile.buffer, metadata);
+        return await getDownloadURL(uploadSnapshot.ref);
+      });
+      reqData.images = await Promise.all(uploadPromises);
     }
 
-    if (id) {
-      // Update existing product
-      await addProducts.updateOne({ _id: id }, { $set: reqData });
-      return SuccessResponse(res, "Product updated successfully", { id, ...reqData });
-    } else {
-      // Add new product
-      const newProduct = new addProducts({
-        ...reqData,
-        insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
-      });
-      const savedProduct = await newProduct.save();
-      return SuccessResponse(res, "Product added successfully", { ...savedProduct.toObject() });
-    }
+    await addProducts.updateOne({ _id: id }, { $set: reqData });
+
+    return SuccessResponse(res, "Product updated successfully", { id, ...reqData });
   } catch (error) {
-    console.error(error); 
-    return ErrorResponse(res, "An error occurred while adding product. Please try again later.");
+    console.error("Error updating product:", error);
+    return ErrorResponse(res, "An error occurred while updating the product. Please try again later.");
   }
 };
 
