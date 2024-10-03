@@ -9,6 +9,7 @@ const userSignupSchema = new mongoose.Schema(
         otp: { type: Number },
         otpExpiration: { type: Number },
         status: { type: Number, default: 0 }, // by default user is inactive
+        isOtpVerified: {type: Boolean,default: false}
     },
     {
         collection: "signup_user",

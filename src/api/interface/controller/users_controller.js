@@ -142,9 +142,9 @@ export const UserOtpForPass = async (req, res) => {
   }
 }
 
-export const UserUpdatePass = async (req, res) => {
+export const UserVerifyOtp = async (req, res) => {
   try {
-    const { email, otp, password } = req.body;
+    const { email, otp } = req.body;
 
     const user = await userSignup.findOne({ email });
     if (!user) {
@@ -157,19 +157,44 @@ export const UserUpdatePass = async (req, res) => {
       return ErrorResponse(res, "OTP expired. Please request a new one.");
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10); 
-    user.password = hashedPassword;
-    user.otp = undefined;
-    user.otpExpiration = undefined; 
+    user.isOtpVerified = true;
+    user.otp = undefined; 
+    user.otpExpiration = undefined;
     await user.save();
 
-    return SuccessResponse(res, "Password updated successfully.", { email });
+    return SuccessResponse(res, "OTP verified successfully.", { email });
   }
   catch (error) {
     console.error(error);
     return ErrorResponse(res, "An error occurred while updating the password.");
   }
 }
+
+export const UpdatePassword = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await userSignup.findOne({ email });
+    if (!user) {
+      return ErrorResponse(res, "User not found.");
+    }
+    if (!user.isOtpVerified) {
+      return ErrorResponse(res, "OTP verification required before updating password.");
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10); 
+    user.password = hashedPassword;
+
+    user.isOtpVerified = false; 
+    await user.save();
+
+    return SuccessResponse(res, "Password updated successfully.", { email });
+  } catch (error) {
+    console.error(error);
+    return ErrorResponse(res, "An error occurred while updating the password.");
+  }
+};
+
 
 export const getProductData = async (req, res) => {
   try {

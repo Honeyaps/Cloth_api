@@ -5,12 +5,13 @@ import {
   getProductData,
   placeCartOrder,
   removeFromCart,
+  UpdatePassword,
   UserLogout,
   UserOtpForPass,
   UserOtpGenerate,
   UserSignin,
   UserSignup,
-  UserUpdatePass,
+  UserVerifyOtp,
 } from "../controller/users_controller.js";
 import validateRequest from "../../config/helpers/validateRequest.js";
 import { addToCartValidate,
@@ -18,12 +19,13 @@ import { addToCartValidate,
     getCartItemsValidate,
     placeCartOrderValidate,
     removeFromCartValidate,
+    UpdatePasswordValidate,
     UserLogoutValidate, 
     UserOtpForPassValidate, 
     UserOtpGenerateValidate, 
     UserSigninValidate, 
     UserSignupValidate, 
-    UserUpdatePassValidate 
+    UserVerifyOtpValidate
 } from "../../config/helpers/validators.js";
 import { Auth } from "../../lib/jwt.js";
 
@@ -40,7 +42,9 @@ export const UserRoute = (router) => {
   // for user to reset password generate otp
   router.post("/user/OTPforPass", validateRequest(UserOtpForPassValidate), UserOtpForPass);
 
-  router.post("/user/updatePass", validateRequest(UserUpdatePassValidate), UserUpdatePass);
+  router.post("/user/verifyOtp", validateRequest(UserVerifyOtpValidate), UserVerifyOtp);
+
+  router.post("/user/updatePass", validateRequest(UpdatePasswordValidate), UpdatePassword);
 
   router.post("/user/getProducts", getProductData);
 
