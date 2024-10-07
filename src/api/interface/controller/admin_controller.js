@@ -49,35 +49,45 @@ export const addProduct = async (req, res) => {
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
     };
 
-    if (req.files?.card_pic && req.files.card_pic.length > 0) {
-      const cardPicFile = req.files.card_pic[0];
-      const storageRef = ref(storage, `product_card_img/${Date.now()}_${cardPicFile.originalname}`);
-      const metadata = {
-        contentType: cardPicFile.mimetype,
-      };
-      const uploadSnapshot = await uploadBytesResumable(storageRef, cardPicFile.buffer, metadata);
-      reqData.card_pic = await getDownloadURL(uploadSnapshot.ref);
-    } else {
-      return ErrorResponse(res, "Card picture is required.");
-    }
+    const uploadCardPicPromise = (async () => {
+      if (req.files?.card_pic && req.files.card_pic.length > 0) {
+        const cardPicFile = req.files.card_pic[0];
+        const storageRef = ref(storage, `product_card_img/${Date.now()}_${cardPicFile.originalname}`);
+        const metadata = { contentType: cardPicFile.mimetype };
+        const uploadSnapshot = await uploadBytesResumable(storageRef, cardPicFile.buffer, metadata);
+        return await getDownloadURL(uploadSnapshot.ref);
+      } else {
+        throw new Error("Card picture is required.");
+      }
+    })();
 
-    if (req.files?.images) {
-      const uploadPromises = req.files.images.slice(0, 4).map(async (imageFile) => {
-        const storageRef = ref(storage, `product_img/${Date.now()}_${imageFile.originalname}`);
-        const metadata = {
-          contentType: imageFile.mimetype,
-        };
-        const uploadSnapshot = await uploadBytesResumable(storageRef, imageFile.buffer, metadata);
-        const imageDownloadURL = await getDownloadURL(uploadSnapshot.ref);
-        
-        return imageDownloadURL; 
-      });
 
-      reqData.images = await Promise.all(uploadPromises);
-    }
+    // Upload product images in parallel
+    const uploadImagesPromise = (async () => {
+      if (req.files?.images) {
+        const uploadPromises = req.files.images.slice(0, 4).map(async (imageFile) => {
+          const storageRef = ref(storage, `product_img/${Date.now()}_${imageFile.originalname}`);
+          const metadata = { contentType: imageFile.mimetype };
+          const uploadSnapshot = await uploadBytesResumable(storageRef, imageFile.buffer, metadata);
+          return await getDownloadURL(uploadSnapshot.ref);
+        });
+        return await Promise.all(uploadPromises);
+      } else {
+        return [];
+      }
+    })();
 
-    const newProduct = new addProducts(reqData);
-    const savedProduct = await newProduct.save();
+    
+ // Wait for both image upload promises
+ const [cardPicUrl, imageUrls] = await Promise.all([uploadCardPicPromise, uploadImagesPromise]);
+
+ // Update request data with image URLs
+ reqData.card_pic = cardPicUrl;
+ reqData.images = imageUrls;
+
+ // Save the new product in the database
+ const newProduct = new addProducts(reqData);
+ const savedProduct = await newProduct.save();
 
     return SuccessResponse(res, "Product added successfully", { ...savedProduct.toObject() });
   } catch (error) {
