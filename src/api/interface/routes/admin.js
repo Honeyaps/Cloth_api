@@ -10,7 +10,7 @@ export const adminRoute = (router) => {
 
     router.post("/admin/addProduct", Auth, multiple, addProduct);
 
-    router.post("/admin/updateProduct", multiple, updateProduct);// auth required
+    router.post("/admin/updateProduct", Auth, multiple, updateProduct);// auth required
 
     router.post("/admin/getDashboardInsights", validateRequest(getDashboardInsightsValidate), getDashboardInsights);
 
