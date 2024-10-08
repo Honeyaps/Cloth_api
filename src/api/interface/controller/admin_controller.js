@@ -37,13 +37,17 @@ export const adminSignin = async (req, res) => {
 
 export const addProduct = async (req, res) => {
   try {
+    // Log request body and files for debugging
+    console.log("Request body:", req.body);
+    console.log("Request files:", req.files);
+
     const reqData = {
       productName: req.body.productName,
       description: req.body.description,
       price: req.body.price,
       category: req.body.category,
       quantity: req.body.quantity,
-      card_pic: null, 
+      card_pic: null,
       images: [],
       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
@@ -51,50 +55,62 @@ export const addProduct = async (req, res) => {
 
     const uploadCardPicPromise = (async () => {
       if (req.files?.card_pic && req.files.card_pic.length > 0) {
-        const cardPicFile = req.files.card_pic[0];
-        const storageRef = ref(storage, `product_card_img/${Date.now()}_${cardPicFile.originalname}`);
-        const metadata = { contentType: cardPicFile.mimetype };
-        const uploadSnapshot = await uploadBytesResumable(storageRef, cardPicFile.buffer, metadata);
-        return await getDownloadURL(uploadSnapshot.ref);
+        try {
+          const cardPicFile = req.files.card_pic[0];
+          const storageRef = ref(storage, `product_card_img/${Date.now()}_${cardPicFile.originalname}`);
+          const metadata = { contentType: cardPicFile.mimetype };
+          console.log("Uploading card pic...");
+          const uploadSnapshot = await uploadBytesResumable(storageRef, cardPicFile.buffer, metadata);
+          console.log("Upload success:", uploadSnapshot);
+          return await getDownloadURL(uploadSnapshot.ref);
+        } catch (uploadError) {
+          console.error("Error uploading card picture:", uploadError);
+          throw uploadError;
+        }
       } else {
         throw new Error("Card picture is required.");
       }
     })();
 
-
-    // Upload product images in parallel
     const uploadImagesPromise = (async () => {
       if (req.files?.images) {
-        const uploadPromises = req.files.images.slice(0, 4).map(async (imageFile) => {
-          const storageRef = ref(storage, `product_img/${Date.now()}_${imageFile.originalname}`);
-          const metadata = { contentType: imageFile.mimetype };
-          const uploadSnapshot = await uploadBytesResumable(storageRef, imageFile.buffer, metadata);
-          return await getDownloadURL(uploadSnapshot.ref);
-        });
-        return await Promise.all(uploadPromises);
+        try {
+          const uploadPromises = req.files.images.slice(0, 4).map(async (imageFile) => {
+            const storageRef = ref(storage, `product_img/${Date.now()}_${imageFile.originalname}`);
+            const metadata = { contentType: imageFile.mimetype };
+            const uploadSnapshot = await uploadBytesResumable(storageRef, imageFile.buffer, metadata);
+            return await getDownloadURL(uploadSnapshot.ref);
+          });
+          return await Promise.all(uploadPromises);
+        } catch (uploadError) {
+          console.error("Error uploading images:", uploadError);
+          throw uploadError;
+        }
       } else {
         return [];
       }
     })();
 
-    
- // Wait for both image upload promises
- const [cardPicUrl, imageUrls] = await Promise.all([uploadCardPicPromise, uploadImagesPromise]);
+    const [cardPicUrl, imageUrls] = await Promise.all([uploadCardPicPromise, uploadImagesPromise]);
 
- // Update request data with image URLs
- reqData.card_pic = cardPicUrl;
- reqData.images = imageUrls;
+    reqData.card_pic = cardPicUrl;
+    reqData.images = imageUrls;
 
- // Save the new product in the database
- const newProduct = new addProducts(reqData);
- const savedProduct = await newProduct.save();
+    const newProduct = new addProducts(reqData);
+    const savedProduct = await newProduct.save();
 
     return SuccessResponse(res, "Product added successfully", { ...savedProduct.toObject() });
   } catch (error) {
-    console.error("Error adding product:", error); // Improved error logging
+    console.error("Error in addProduct:", {
+      message: error.message,
+      stack: error.stack,
+      requestBody: req.body,
+      requestFiles: req.files,
+    });
     return ErrorResponse(res, "An error occurred while adding the product. Please try again later.");
   }
 };
+
 
 
 
