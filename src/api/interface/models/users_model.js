@@ -3,6 +3,7 @@ import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from "firebas
 import { storage } from "../../config/db.js";
 import addProducts from "../../config/schema/adminAddProduct.schema.js";
 import multer from "multer";
+import moment from "moment";
 
 // Setup multer for image upload
 const upload = multer({ storage: multer.memoryStorage() });
@@ -15,13 +16,11 @@ const uploadSingleImage = async (file, path) => {
     try {
         const storageRef = ref(storage, `${path}/${Date.now()}_${file.originalname}`);
         const metadata = { contentType: file.mimetype };
-        
+
         const uploadSnapshot = await uploadBytesResumable(storageRef, file.buffer, metadata);
         const downloadURL = await getDownloadURL(uploadSnapshot.ref);
-        
-        // Log the URL of the uploaded image
+
         console.log(`Uploaded ${file.originalname} to ${path}. Download URL: ${downloadURL}`);
-        
         return downloadURL;
     } catch (error) {
         console.error(`Error uploading image ${file.originalname}:`, error);
@@ -31,28 +30,29 @@ const uploadSingleImage = async (file, path) => {
 
 export async function uploadImages(files, productId) {
     try {
+        // Upload card_pic if it exists
         const cardPicUrl = files.card_pic?.[0]
             ? await uploadSingleImage(files.card_pic[0], 'product_card_img')
             : null;
 
+        // Upload product images
         const imageFiles = files.images || [];
         const imageUrls = await Promise.all(
             imageFiles.slice(0, 4).map(file => uploadSingleImage(file, 'product_img'))
         );
 
-        // Log URLs for debugging
-        console.log("Card Pic URL:", cardPicUrl);
-        console.log("Image URLs:", imageUrls);
-
-          // **Debug the update operation**
+        // Update MongoDB document with image URLs
         const updateResult = await addProducts.findByIdAndUpdate(
             productId,
-            { card_pic: cardPicUrl, images: imageUrls }
+            { card_pic: cardPicUrl, images: imageUrls },
+            { new: true }
         );
 
-        console.log("Update Result:", updateResult);
+        if (!updateResult) {
+            throw new Error("Failed to update product with image URLs");
+        }
 
-        console.log("Images uploaded and product updated successfully");
+        console.log("Images uploaded and product updated successfully", updateResult);
     } catch (error) {
         console.error("Error uploading images:", error);
         throw new Error("Failed to upload images and update the product.");
