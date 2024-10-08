@@ -21,7 +21,7 @@ const storage = getStorage(app);
 export const dbconnection = async() => {
   const options = {
     serverSelectionTimeoutMS: 20000,
-    connectTimeoutMS: 10000, 
+    connectTimeoutMS: 60000, 
   };
   await mongoose
     .connect(env.MONGO_URL, options)
