@@ -39,8 +39,8 @@ export async function uploadImages(files, productId) {
         // Upload product images
         const imageFiles = files.images || [];
         const imageUrls = await Promise.all(
-            imageFiles.slice(0, 4).map(file => uploadSingleImage(file, 'product_img'))
-        );
+            imageFiles.map(file => uploadSingleImage(file, 'product_img'))
+          );
 
         // Update MongoDB document with image URLs
         const updateResult = await addProducts.findByIdAndUpdate(
