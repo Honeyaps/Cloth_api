@@ -73,7 +73,7 @@ export const updateProduct = async (req, res) => {
 
     await addProducts.updateOne({ _id: id }, { $set: reqData });
     SuccessResponse(res, "Product updated successfully, image updates in progress", { id, ...reqData });
-    uploadUpdatedImages(req.files, existingProduct);
+    await uploadUpdatedImages(req.files, existingProduct);
   } catch (error) {
     console.error("Error updating product:", error);
     return ErrorResponse(res, "An error occurred while updating the product. Please try again later.");
