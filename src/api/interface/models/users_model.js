@@ -30,18 +30,15 @@ const uploadSingleImage = async (file, path) => {
 
 export async function uploadImages(files, productId) {
     try {
-        // Upload card_pic if it exists
         const cardPicUrl = files.card_pic?.[0]
             ? await uploadSingleImage(files.card_pic[0], 'product_card_img')
             : null;
 
-        // Upload product images
         const imageFiles = files.images || [];
         const imageUrls = await Promise.all(
             imageFiles.slice(0, 4).map(file => uploadSingleImage(file, 'product_img'))
         );
 
-        // Update MongoDB document with image URLs
         const updateResult = await addProducts.findByIdAndUpdate(
             productId,
             { card_pic: cardPicUrl, images: imageUrls },
