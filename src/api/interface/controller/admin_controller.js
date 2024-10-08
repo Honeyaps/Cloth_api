@@ -42,20 +42,19 @@ export const addProduct = async (req, res) => {
     const newProduct = new addProducts(reqData);
     const savedProduct = await newProduct.save();
 
-    SuccessResponse(res, "Product added successfully, image upload in progress", savedProduct.toObject());
     // Trigger the image upload asynchronously
-    await uploadImages(req.files, savedProduct._id)
-    .then(() => {
-      console.log("Images uploaded successfully");
-    })
-    .catch((error) => {
-      console.error("Error uploading images:", error);
-    });
+    await uploadImages(req.files, savedProduct._id);
+    
+    // Fetch updated product to include images and card_pic
+    const updatedProduct = await addProducts.findById(savedProduct._id);
+
+    SuccessResponse(res, "Product added successfully", updatedProduct);
   } catch (error) {
     console.error("Error in addProduct:", error);
     return ErrorResponse(res, "An error occurred while adding the product");
   }
 };
+
 
 export const updateProduct = async (req, res) => {
   try {
