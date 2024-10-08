@@ -44,10 +44,18 @@ export async function uploadImages(files, productId) {
         console.log("Card Pic URL:", cardPicUrl);
         console.log("Image URLs:", imageUrls);
 
-        // Update the MongoDB document with URLs
-        await addProducts.findByIdAndUpdate(productId, { card_pic: cardPicUrl, images: imageUrls });
+        // Update MongoDB and log the result
+        const updateResult = await addProducts.findByIdAndUpdate(
+            productId,
+            { card_pic: cardPicUrl, images: imageUrls },
+            { new: true }  // Return the updated document
+        );
 
-        console.log("Images uploaded and product updated successfully");
+        if (!updateResult) {
+            throw new Error("Failed to update product with image URLs");
+        }
+
+        console.log("Images uploaded and product updated successfully", updateResult);
     } catch (error) {
         console.error("Error uploading images:", error);
         throw new Error("Failed to upload images and update the product.");

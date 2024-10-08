@@ -48,7 +48,7 @@ export const addProduct = async (req, res) => {
     // Fetch updated product to include images and card_pic
     const updatedProduct = await addProducts.findById(savedProduct._id);
 
-    SuccessResponse(res, "Product added successfully", updatedProduct);
+    return SuccessResponse(res, "Product added successfully", updatedProduct);
   } catch (error) {
     console.error("Error in addProduct:", error);
     return ErrorResponse(res, "An error occurred while adding the product");
