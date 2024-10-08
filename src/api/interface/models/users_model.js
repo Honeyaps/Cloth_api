@@ -28,6 +28,11 @@ export async function uploadImages(files, productId) {
         const imageUrls = await Promise.all(
           imageFiles.slice(0, 4).map(file => uploadSingleImage(file, 'product_img'))
         );
+
+          // Check if URLs are being retrieved correctly
+          console.log("Card Pic URL:", cardPicUrl);
+          console.log("Image URLs:", imageUrls);
+
         await addProducts.findByIdAndUpdate(productId, { card_pic: cardPicUrl, images: imageUrls });
         console.log("Images uploaded and product updated successfully");
       } catch (error) {
