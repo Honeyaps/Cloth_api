@@ -49,6 +49,7 @@ export async function uploadImages(files, productId) {
         );
 
         if (!updateResult) {
+            console.error("Failed to update product with image URLs");
             throw new Error("Failed to update product with image URLs");
         }
 
