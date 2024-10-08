@@ -30,21 +30,29 @@ const uploadSingleImage = async (file, path) => {
 export async function uploadImages(files, productId) {
     try {
         console.log("Starting image upload process for product ID:", productId);
-        // Upload card_pic if it exists
-        const cardPicUrl = files.card_pic?.[0]
-            ? await uploadSingleImage(files.card_pic[0], 'product_card_img')
-            : null;
+        
+        // Create an array to hold the promises for image uploads
+        const uploadPromises = [];
 
-        // Upload product images
+        // Check and upload the card picture if it exists
+        if (files.card_pic?.[0]) {
+            const cardPicUploadPromise = uploadSingleImage(files.card_pic[0], 'product_card_img');
+            uploadPromises.push(cardPicUploadPromise);
+        }
+
+        // Map product images to promises
         const imageFiles = files.images || [];
-        const imageUrls = await Promise.all(
-            imageFiles.map(file => uploadSingleImage(file, 'product_img'))
-          );
+        const imageUploadPromises = imageFiles.map(file => uploadSingleImage(file, 'product_img'));
+        uploadPromises.push(...imageUploadPromises); // Add all image upload promises to the array
+
+        // Wait for all uploads to complete
+        const uploadResults = await Promise.all(uploadPromises);
+        const cardPicUrl = uploadPromises.length > 0 ? uploadResults.shift() : null; // Get card picture URL if uploaded
 
         // Update MongoDB document with image URLs
         const updateResult = await addProducts.findByIdAndUpdate(
             productId,
-            { card_pic: cardPicUrl, images: imageUrls },
+            { card_pic: cardPicUrl, images: uploadResults },
             { new: true }
         );
 
@@ -53,14 +61,14 @@ export async function uploadImages(files, productId) {
             throw new Error("Failed to update product with image URLs");
         }
 
-        console.log("Images uploaded and product updated successfully", updateResult); 
-
+        console.log("Images uploaded and product updated successfully", updateResult);
         return updateResult;  
     } catch (error) {
         console.error("Error uploading images:", error);
         throw new Error("Failed to upload images and update the product.");
     }
 }
+
 
 
 export async function uploadUpdatedImages(files, existingProduct) {
