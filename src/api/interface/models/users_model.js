@@ -19,6 +19,9 @@ const uploadSingleImage = async (file, path) => {
         const uploadSnapshot = await uploadBytesResumable(storageRef, file.buffer, metadata);
         const downloadURL = await getDownloadURL(uploadSnapshot.ref);
         
+        // Log the URL of the uploaded image
+        console.log(`Uploaded ${file.originalname} to ${path}. Download URL: ${downloadURL}`);
+        
         return downloadURL;
     } catch (error) {
         console.error(`Error uploading image ${file.originalname}:`, error);
@@ -36,7 +39,6 @@ export async function uploadImages(files, productId) {
         const imageUrls = await Promise.all(
             imageFiles.slice(0, 4).map(file => uploadSingleImage(file, 'product_img'))
         );
-
         const updateResult = await addProducts.findByIdAndUpdate(
             productId,
             { card_pic: cardPicUrl, images: imageUrls },
