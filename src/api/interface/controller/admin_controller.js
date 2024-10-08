@@ -46,14 +46,12 @@ export const addProduct = async (req, res) => {
     const savedProduct = await newProduct.save();
 
     console.log("Product saved:", savedProduct); // Log saved product
-
-    await uploadImages(req.files, savedProduct._id);
-
-    const updatedProduct = await addProducts.findById(savedProduct._id);
-     SuccessResponse(res, "Product added successfully with images", updatedProduct);
+  // Upload images if available
+  const updatedProduct = await uploadImages(req.files, savedProduct._id);
+  SuccessResponse(res, "Product added successfully with images", updatedProduct);
 
   } catch (error) {
-    console.error("Error in addProduct:", error);
+    console.error("Error in addProduct:", error.message, error.stack);
     return ErrorResponse(res, "An error occurred while adding the product.");
   }
 };
