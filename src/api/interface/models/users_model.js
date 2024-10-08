@@ -39,17 +39,19 @@ export async function uploadImages(files, productId) {
         const imageUrls = await Promise.all(
             imageFiles.slice(0, 4).map(file => uploadSingleImage(file, 'product_img'))
         );
-        const updateResult = await addProducts.findByIdAndUpdate(
-            productId,
-            { card_pic: cardPicUrl, images: imageUrls },
-            { new: true }
-        );
-
-        if (!updateResult) {
-            throw new Error("Failed to update product with image URLs");
-        }
-
-        console.log("Images uploaded and product updated successfully", updateResult);
+        // Update MongoDB document with image URLs
+    const updatedProduct = await addProducts.findByIdAndUpdate(
+        productId,
+        { card_pic: cardPicUrl, images: imageUrls },
+        { new: true }
+      );
+  
+      if (!updatedProduct) {
+        throw new Error("Failed to update product with image URLs");
+      }
+  
+      console.log("Images uploaded and product updated successfully", updatedProduct);
+      return updatedProduct;
     } catch (error) {
         console.error("Error uploading images:", error);
         throw new Error("Failed to upload images and update the product.");
