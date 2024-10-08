@@ -41,18 +41,11 @@ export const addProduct = async (req, res) => {
 
     const newProduct = new addProducts(reqData);
     const savedProduct = await newProduct.save();
+    
+    await uploadImages(req.files, savedProduct._id);
+    const updatedProduct = await addProducts.findById(savedProduct._id);
 
-     // Respond to the user immediately
-     SuccessResponse(res, "Product added successfully, image upload in progress", savedProduct.toObject());
-
-     // Trigger the image upload asynchronously without blocking response
-     uploadImages(req.files, savedProduct._id)
-       .then(() => {
-         console.log("Images uploaded successfully for product:", savedProduct._id);
-       })
-       .catch((error) => {
-         console.error("Error uploading images for product:", savedProduct._id, error);
-       });
+    return SuccessResponse(res, "Product added successfully", updatedProduct);
   } catch (error) {
     console.error("Error in addProduct:", error);
     return ErrorResponse(res, "An error occurred while adding the product");
