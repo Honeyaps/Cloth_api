@@ -45,10 +45,11 @@ export const addProduct = async (req, res) => {
     const newProduct = new addProducts(reqData);
     const savedProduct = await newProduct.save();
 
-     // Upload images and update the product with image URLs
-     const updatedProduct = await uploadImages(req.files, savedProduct._id);
-    
-     // Respond to the user with the updated product
+    console.log("Product saved:", savedProduct); // Log saved product
+
+    await uploadImages(req.files, savedProduct._id);
+
+    const updatedProduct = await addProducts.findById(savedProduct._id);
      SuccessResponse(res, "Product added successfully with images", updatedProduct);
 
   } catch (error) {

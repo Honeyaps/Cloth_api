@@ -30,6 +30,7 @@ const uploadSingleImage = async (file, path) => {
 
 export async function uploadImages(files, productId) {
     try {
+        console.log("Starting image upload process for product ID:", productId);
         // Upload card_pic if it exists
         const cardPicUrl = files.card_pic?.[0]
             ? await uploadSingleImage(files.card_pic[0], 'product_card_img')
