@@ -42,11 +42,14 @@ export const addProduct = async (req, res) => {
      const newProduct = new addProducts(reqData);
      const savedProduct = await newProduct.save();
 
-      // Upload images and update the product
-    const updatedProduct = await uploadImages(req.files, savedProduct._id);
-
-    // Respond to the user with the updated product
-    SuccessResponse(res, "Product added successfully with images", updatedProduct);
+    // Try uploading images and updating product
+    try {
+      const updatedProduct = await uploadImages(req.files, savedProduct._id);
+      SuccessResponse(res, "Product added successfully with images", updatedProduct);
+    } catch (uploadError) {
+      console.error("Error in image upload:", uploadError);
+      return ErrorResponse(res, "Product added, but an error occurred during image upload");
+    }
    } catch (error) {
      console.error("Error in addProduct:", error);
      return ErrorResponse(res, "An error occurred while adding the product");
