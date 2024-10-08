@@ -2,10 +2,10 @@ import jwt from "jsonwebtoken";
 import moment from "moment";
 import env from "../../../infrastructure/env.js";
 import { ErrorResponse, SuccessResponse } from "../../config/helpers/apiResponse.js";
+import addProducts from "../../config/schema/adminAddProduct.schema.js";
 import order from "../../config/schema/order.schema.js";
 import userSignup from "../../config/schema/userSignup.schema.js";
 import { uploadImages, uploadUpdatedImages } from "../models/users_model.js";
-import addProducts from "../../config/schema/adminAddProduct.schema.js";
 
 export const adminSignin = async (req, res) => {
   try {
@@ -25,41 +25,35 @@ export const adminSignin = async (req, res) => {
   }
 };
 
-
 export const addProduct = async (req, res) => {
-  try {
-    const reqData = {
-      productName: req.body.productName,
-      description: req.body.description,
-      price: req.body.price,
-      category: req.body.category,
-      quantity: req.body.quantity,
-      card_pic: null,
-      images: [],
-      insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
-      update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
-    };
+   try {
+     const reqData = {
+       productName: req.body.productName,
+       description: req.body.description,
+       price: req.body.price,
+       category: req.body.category,
+       quantity: req.body.quantity,  
+       card_pic: null,
+       images: [], 
+       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+     };
 
-    // Save the product without images first
-    const newProduct = new addProducts(reqData);
-    const savedProduct = await newProduct.save();
+     const newProduct = new addProducts(reqData);
+     const savedProduct = await newProduct.save();
 
-    // Trigger image upload asynchronously
-    uploadImages(req.files, savedProduct._id)
-      .then(() => {
-        console.log("Images uploaded successfully");
-      })
-      .catch((error) => {
-        console.error("Error uploading images:", error);
-      });
+     // Trigger the image upload asynchronously
+     await uploadImages(req.files, savedProduct._id);
+     
+     // Fetch updated product to include images and card_pic
+     const updatedProduct = await addProducts.findById(savedProduct._id);
 
-    // Return success response immediately after saving the product
-    return SuccessResponse(res, "Product added successfully", savedProduct);
-  } catch (error) {
-    console.error("Error in addProduct:", error);
-    return ErrorResponse(res, "An error occurred while adding the product");
-  }
-};
+     SuccessResponse(res, "Product added successfully", updatedProduct);
+   } catch (error) {
+     console.error("Error in addProduct:", error);
+     return ErrorResponse(res, "An error occurred while adding the product");
+   }
+ };
 
 
 export const updateProduct = async (req, res) => {
