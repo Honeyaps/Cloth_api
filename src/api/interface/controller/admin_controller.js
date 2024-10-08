@@ -26,35 +26,40 @@ export const adminSignin = async (req, res) => {
 };
 
 export const addProduct = async (req, res) => {
-   try {
-     const reqData = {
-       productName: req.body.productName,
-       description: req.body.description,
-       price: req.body.price,
-       category: req.body.category,
-       quantity: req.body.quantity,  
-       card_pic: null,
-       images: [], 
-       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
-       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
-     };
+  try {
+    const reqData = {
+      productName: req.body.productName,
+      description: req.body.description,
+      price: req.body.price,
+      category: req.body.category,
+      quantity: req.body.quantity,  
+      card_pic: null,
+      images: [], 
+      insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+      update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+    };
 
-     const newProduct = new addProducts(reqData);
-     const savedProduct = await newProduct.save();
+    const newProduct = new addProducts(reqData);
+    const savedProduct = await newProduct.save();
 
-      // Trigger the image upload asynchronously
-      await uploadImages(req.files, savedProduct._id);
-     
-      // Fetch updated product to include images and card_pic
-      const updatedProduct = await addProducts.findById(savedProduct._id);
+    // Immediately respond to the user with the new product
+    SuccessResponse(res, "Product added successfully", savedProduct);
 
-    // Respond to the user with the updated product
-    SuccessResponse(res, "Product added successfully with images", updatedProduct);
-   } catch (error) {
-     console.error("Error in addProduct:", error);
-     return ErrorResponse(res, "An error occurred while adding the product");
-   }
- };
+    // Trigger the image upload asynchronously
+    // Use a try-catch block to handle errors in the background
+    try {
+       await uploadImages(req.files, savedProduct._id);
+    } catch (uploadError) {
+       console.error("Error uploading images:", uploadError);
+       // You might log this error to an external service
+    }
+
+  } catch (error) {
+    console.error("Error in addProduct:", error);
+    return ErrorResponse(res, "An error occurred while adding the product");
+  }
+};
+
 
 
 export const updateProduct = async (req, res) => {
