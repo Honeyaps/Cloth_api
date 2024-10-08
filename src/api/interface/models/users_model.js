@@ -12,34 +12,48 @@ export let multiple = upload.fields([
 ]);
 
 const uploadSingleImage = async (file, path) => {
-    const storageRef = ref(storage, `${path}/${Date.now()}_${file.originalname}`);
-    const metadata = { contentType: file.mimetype };
-    const uploadSnapshot = await uploadBytesResumable(storageRef, file.buffer, metadata);
-    return await getDownloadURL(uploadSnapshot.ref);
-  };
+    try {
+        const storageRef = ref(storage, `${path}/${Date.now()}_${file.originalname}`);
+        const metadata = { contentType: file.mimetype };
+        
+        const uploadSnapshot = await uploadBytesResumable(storageRef, file.buffer, metadata);
+        const downloadURL = await getDownloadURL(uploadSnapshot.ref);
+        
+        // Log the URL of the uploaded image
+        console.log(`Uploaded ${file.originalname} to ${path}. Download URL: ${downloadURL}`);
+        
+        return downloadURL;
+    } catch (error) {
+        console.error(`Error uploading image ${file.originalname}:`, error);
+        throw new Error(`Failed to upload image ${file.originalname}`);
+    }
+};
 
 export async function uploadImages(files, productId) {
     try {
         const cardPicUrl = files.card_pic?.[0]
-          ? await uploadSingleImage(files.card_pic[0], 'product_card_img')
-          : null;
+            ? await uploadSingleImage(files.card_pic[0], 'product_card_img')
+            : null;
 
         const imageFiles = files.images || [];
         const imageUrls = await Promise.all(
-          imageFiles.slice(0, 4).map(file => uploadSingleImage(file, 'product_img'))
+            imageFiles.slice(0, 4).map(file => uploadSingleImage(file, 'product_img'))
         );
 
-          // Check if URLs are being retrieved correctly
-          console.log("Card Pic URL:", cardPicUrl);
-          console.log("Image URLs:", imageUrls);
+        // Log URLs for debugging
+        console.log("Card Pic URL:", cardPicUrl);
+        console.log("Image URLs:", imageUrls);
 
+        // Update the MongoDB document with URLs
         await addProducts.findByIdAndUpdate(productId, { card_pic: cardPicUrl, images: imageUrls });
-        console.log("Images uploaded and product updated successfully");
-      } catch (error) {
-        console.error("Error uploading images:", error);
-      }
 
+        console.log("Images uploaded and product updated successfully");
+    } catch (error) {
+        console.error("Error uploading images:", error);
+        throw new Error("Failed to upload images and update the product.");
+    }
 }
+
 
 export async function uploadUpdatedImages(files, existingProduct) {
     try {
