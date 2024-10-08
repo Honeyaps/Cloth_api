@@ -41,6 +41,7 @@ export const addProduct = async (req, res) => {
     console.log("Request body:", req.body);
     console.log("Request files:", req.files);
 
+    // Prepare product data
     const reqData = {
       productName: req.body.productName,
       description: req.body.description,
@@ -53,6 +54,7 @@ export const addProduct = async (req, res) => {
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
     };
 
+    // Upload card picture
     const uploadCardPicPromise = (async () => {
       if (req.files?.card_pic && req.files.card_pic.length > 0) {
         try {
@@ -60,54 +62,72 @@ export const addProduct = async (req, res) => {
           const storageRef = ref(storage, `product_card_img/${Date.now()}_${cardPicFile.originalname}`);
           const metadata = { contentType: cardPicFile.mimetype };
           console.log("Uploading card pic...");
+
+          // Upload file to Firebase
           const uploadSnapshot = await uploadBytesResumable(storageRef, cardPicFile.buffer, metadata);
-          console.log("Upload success:", uploadSnapshot);
+          console.log("Card pic upload success:", uploadSnapshot);
+
+          // Return the download URL
           return await getDownloadURL(uploadSnapshot.ref);
         } catch (uploadError) {
           console.error("Error uploading card picture:", uploadError);
-          throw uploadError;
+          throw new Error("Failed to upload card picture.");
         }
       } else {
         throw new Error("Card picture is required.");
       }
     })();
 
+    // Upload product images (up to 4 images)
     const uploadImagesPromise = (async () => {
-      if (req.files?.images) {
+      if (req.files?.images && req.files.images.length > 0) {
         try {
           const uploadPromises = req.files.images.slice(0, 4).map(async (imageFile) => {
             const storageRef = ref(storage, `product_img/${Date.now()}_${imageFile.originalname}`);
             const metadata = { contentType: imageFile.mimetype };
+
+            // Upload image to Firebase
             const uploadSnapshot = await uploadBytesResumable(storageRef, imageFile.buffer, metadata);
             return await getDownloadURL(uploadSnapshot.ref);
           });
+
+          // Wait for all uploads to complete and return URLs
           return await Promise.all(uploadPromises);
         } catch (uploadError) {
           console.error("Error uploading images:", uploadError);
-          throw uploadError;
+          throw new Error("Failed to upload product images.");
         }
       } else {
         return [];
       }
     })();
 
+    // Wait for both card pic and images to be uploaded in parallel
     const [cardPicUrl, imageUrls] = await Promise.all([uploadCardPicPromise, uploadImagesPromise]);
 
+    // Update request data with URLs
     reqData.card_pic = cardPicUrl;
     reqData.images = imageUrls;
 
+    // Save product to the database
     const newProduct = new addProducts(reqData);
     const savedProduct = await newProduct.save();
 
+    console.log("Product saved successfully:", savedProduct);
+
+    // Send success response
     return SuccessResponse(res, "Product added successfully", { ...savedProduct.toObject() });
   } catch (error) {
+    // Improved logging for better error diagnosis
     console.error("Error in addProduct:", {
       message: error.message,
       stack: error.stack,
       requestBody: req.body,
       requestFiles: req.files,
     });
-    return ErrorResponse(res, "An error occurred while adding the product. Please try again later.");
+
+    // Return error response with a more specific message
+    return ErrorResponse(res, `An error occurred while adding the product: ${error.message}`);
   }
 };
 
