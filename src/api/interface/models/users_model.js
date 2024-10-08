@@ -52,8 +52,7 @@ export async function uploadImages(files, productId) {
             throw new Error("Failed to update product with image URLs");
         }
 
-        console.log("Images uploaded and product updated successfully", updateResult);
-        return updateResult;
+        console.log("Images uploaded and product updated successfully", updateResult);   
     } catch (error) {
         console.error("Error uploading images:", error);
         throw new Error("Failed to upload images and update the product.");
