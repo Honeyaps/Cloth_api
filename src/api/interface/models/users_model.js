@@ -8,7 +8,7 @@ import multer from "multer";
 const upload = multer({ storage: multer.memoryStorage() });
 export let multiple = upload.fields([
   { name: 'card_pic', maxCount: 1 },
-  { name: 'images[]', maxCount: 4 }  
+  { name: 'images', maxCount: 4 }  
 ]);
 
 const uploadSingleImage = async (file, path) => {
