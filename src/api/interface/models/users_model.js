@@ -15,7 +15,7 @@ const uploadSingleImage = async (file, path) => {
     try {
         const storageRef = ref(storage, `${path}/${Date.now()}_${file.originalname}`);
         const metadata = { contentType: file.mimetype };
-
+        
         const uploadSnapshot = await uploadBytesResumable(storageRef, file.buffer, metadata);
         const downloadURL = await getDownloadURL(uploadSnapshot.ref);
         
@@ -44,23 +44,8 @@ export async function uploadImages(files, productId) {
         console.log("Card Pic URL:", cardPicUrl);
         console.log("Image URLs:", imageUrls);
 
-        // Ensure productId is valid
-        if (!productId) {
-            throw new Error("Invalid product ID.");
-        }
-
-        // Log before updating MongoDB
-        console.log(`Updating product ${productId} with cardPic: ${cardPicUrl} and images: ${imageUrls}`);
-
         // Update the MongoDB document with URLs
-        const updateResult = await addProducts.findByIdAndUpdate(productId, { card_pic: cardPicUrl, images: imageUrls });
-
-        // Log the result of the update operation
-        console.log("MongoDB update result:", updateResult);
-
-        if (!updateResult) {
-            console.error(`No product found with ID: ${productId}`);
-        }
+        await addProducts.findByIdAndUpdate(productId, { card_pic: cardPicUrl, images: imageUrls });
 
         console.log("Images uploaded and product updated successfully");
     } catch (error) {
@@ -68,7 +53,6 @@ export async function uploadImages(files, productId) {
         throw new Error("Failed to upload images and update the product.");
     }
 }
-
 
 
 export async function uploadUpdatedImages(files, existingProduct) {
