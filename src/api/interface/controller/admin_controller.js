@@ -44,7 +44,7 @@ export const addProduct = async (req, res) => {
 
     SuccessResponse(res, "Product added successfully, image upload in progress", savedProduct.toObject());
     // Trigger the image upload asynchronously
-    uploadImages(req.files, savedProduct._id)
+    await uploadImages(req.files, savedProduct._id)
     .then(() => {
       console.log("Images uploaded successfully");
     })
