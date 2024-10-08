@@ -1,20 +1,11 @@
-import multer from "multer";
 import jwt from "jsonwebtoken";
-import env from "../../../infrastructure/env.js";
-import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-import { storage } from "../../config/db.js";
 import moment from "moment";
+import env from "../../../infrastructure/env.js";
 import { ErrorResponse, SuccessResponse } from "../../config/helpers/apiResponse.js";
 import addProducts from "../../config/schema/adminAddProduct.schema.js";
-import userSignup from "../../config/schema/userSignup.schema.js";
 import order from "../../config/schema/order.schema.js";
-
-// Setup multer for image upload
-const upload = multer({ storage: multer.memoryStorage() });
-export let multiple = upload.fields([
-  { name: 'card_pic', maxCount: 1 }, // Only one card picture
-  { name: 'images', maxCount: 4 }    // Up to four additional images
-]);
+import userSignup from "../../config/schema/userSignup.schema.js";
+import { uploadImages, uploadUpdatedImages } from "../models/users_model.js";
 
 export const adminSignin = async (req, res) => {
   try {
@@ -34,14 +25,8 @@ export const adminSignin = async (req, res) => {
   }
 };
 
-
 export const addProduct = async (req, res) => {
   try {
-    // Log request body and files for debugging
-    console.log("Request body:", req.body);
-    console.log("Request files:", req.files);
-
-    // Prepare product data
     const reqData = {
       productName: req.body.productName,
       description: req.body.description,
@@ -49,90 +34,22 @@ export const addProduct = async (req, res) => {
       category: req.body.category,
       quantity: req.body.quantity,
       card_pic: null,
-      images: [],
+      images: [], 
       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
     };
 
-    // Upload card picture
-    const uploadCardPicPromise = (async () => {
-      if (req.files?.card_pic && req.files.card_pic.length > 0) {
-        try {
-          const cardPicFile = req.files.card_pic[0];
-          const storageRef = ref(storage, `product_card_img/${Date.now()}_${cardPicFile.originalname}`);
-          const metadata = { contentType: cardPicFile.mimetype };
-          console.log("Uploading card pic...");
-
-          // Upload file to Firebase
-          const uploadSnapshot = await uploadBytesResumable(storageRef, cardPicFile.buffer, metadata);
-          console.log("Card pic upload success:", uploadSnapshot);
-
-          // Return the download URL
-          return await getDownloadURL(uploadSnapshot.ref);
-        } catch (uploadError) {
-          console.error("Error uploading card picture:", uploadError);
-          throw new Error("Failed to upload card picture.");
-        }
-      } else {
-        throw new Error("Card picture is required.");
-      }
-    })();
-
-    // Upload product images (up to 4 images)
-    const uploadImagesPromise = (async () => {
-      if (req.files?.images && req.files.images.length > 0) {
-        try {
-          const uploadPromises = req.files.images.slice(0, 4).map(async (imageFile) => {
-            const storageRef = ref(storage, `product_img/${Date.now()}_${imageFile.originalname}`);
-            const metadata = { contentType: imageFile.mimetype };
-
-            // Upload image to Firebase
-            const uploadSnapshot = await uploadBytesResumable(storageRef, imageFile.buffer, metadata);
-            return await getDownloadURL(uploadSnapshot.ref);
-          });
-
-          // Wait for all uploads to complete and return URLs
-          return await Promise.all(uploadPromises);
-        } catch (uploadError) {
-          console.error("Error uploading images:", uploadError);
-          throw new Error("Failed to upload product images.");
-        }
-      } else {
-        return [];
-      }
-    })();
-
-    // Wait for both card pic and images to be uploaded in parallel
-    const [cardPicUrl, imageUrls] = await Promise.all([uploadCardPicPromise, uploadImagesPromise]);
-
-    // Update request data with URLs
-    reqData.card_pic = cardPicUrl;
-    reqData.images = imageUrls;
-
-    // Save product to the database
     const newProduct = new addProducts(reqData);
     const savedProduct = await newProduct.save();
 
-    console.log("Product saved successfully:", savedProduct);
-
-    // Send success response
-    return SuccessResponse(res, "Product added successfully", { ...savedProduct.toObject() });
+    SuccessResponse(res, "Product added successfully, image upload in progress", savedProduct.toObject());
+    // Trigger the image upload asynchronously
+    uploadImages(req.files, savedProduct._id);
   } catch (error) {
-    // Improved logging for better error diagnosis
-    console.error("Error in addProduct:", {
-      message: error.message,
-      stack: error.stack,
-      requestBody: req.body,
-      requestFiles: req.files,
-    });
-
-    // Return error response with a more specific message
-    return ErrorResponse(res, `An error occurred while adding the product: ${error.message}`);
+    console.error("Error in addProduct:", error);
+    return ErrorResponse(res, "An error occurred while adding the product");
   }
 };
-
-
-
 
 export const updateProduct = async (req, res) => {
   try {
@@ -149,48 +66,14 @@ export const updateProduct = async (req, res) => {
       price: req.body.price || existingProduct.price,
       category: req.body.category || existingProduct.category,
       quantity: req.body.quantity || existingProduct.quantity,
+      card_pic: existingProduct.card_pic, 
+      images: existingProduct.images,
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
-      card_pic: existingProduct.card_pic,
-      images: [] 
     };
 
-    if (req.files?.card_pic && req.files.card_pic.length > 0) {
-      const cardPicFile = req.files.card_pic[0];
-      const storageRef = ref(storage, `product_card_img/${Date.now()}_${cardPicFile.originalname}`);
-      const metadata = {
-        contentType: cardPicFile.mimetype,
-      };
-
-      const uploadSnapshot = await uploadBytesResumable(storageRef, cardPicFile.buffer, metadata);
-      reqData.card_pic = await getDownloadURL(uploadSnapshot.ref);
-
-      if (existingProduct.card_pic) {
-        const existingCardPicRef = ref(storage, existingProduct.card_pic);
-        await deleteObject(existingCardPicRef);
-      }
-    }
-
-    if (req.files?.images) {
-      if (existingProduct.images.length > 0) {
-        const existingImageRefs = existingProduct.images.map(image => ref(storage, image));
-        await Promise.all(existingImageRefs.map(ref => deleteObject(ref)));
-      }
-
-      const uploadPromises = req.files.images.slice(0, 4).map(async (imageFile) => {
-        const storageRef = ref(storage, `product_img/${Date.now()}_${imageFile.originalname}`);
-        const metadata = {
-          contentType: imageFile.mimetype,
-        };
-
-        const uploadSnapshot = await uploadBytesResumable(storageRef, imageFile.buffer, metadata);
-        return await getDownloadURL(uploadSnapshot.ref);
-      });
-      reqData.images = await Promise.all(uploadPromises);
-    }
-
     await addProducts.updateOne({ _id: id }, { $set: reqData });
-
-    return SuccessResponse(res, "Product updated successfully", { id, ...reqData });
+    SuccessResponse(res, "Product updated successfully, image updates in progress", { id, ...reqData });
+    uploadUpdatedImages(req.files, existingProduct);
   } catch (error) {
     console.error("Error updating product:", error);
     return ErrorResponse(res, "An error occurred while updating the product. Please try again later.");

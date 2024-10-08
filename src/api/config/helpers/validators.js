@@ -62,11 +62,10 @@ export const AddProductValidate = object({
   body: object({
     productName: string()
       .min(3, "Product name must be at least 3 characters long")
-      .max(20, "Product name cannot exceed 20 characters"),
+      .max(50, "Product name cannot exceed 20 characters"),
 
     description: string()
-      .min(3, "Description must be at least 3 characters long")
-      .max(50, "Description cannot exceed 50 characters"),
+      .min(3, "Description must be at least 3 characters long"),
 
     price: number()
       .min(1, "Price must be at least 1"),
@@ -75,10 +74,16 @@ export const AddProductValidate = object({
 
     category: string()
       .min(1, "Category must be at least 1 characters long")
-      .max(20, "Category cannot exceed 20 characters"),
+      .max(50, "Category cannot exceed 20 characters"),
 
     quantity: number()
       .min(1, "Quantity must be at least 1"),
+  }),
+})
+
+export const UpdateProductValidate = object({
+  body: object({
+    id: string()
   }),
 })
 
