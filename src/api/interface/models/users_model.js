@@ -3,13 +3,12 @@ import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from "firebas
 import { storage } from "../../config/db.js";
 import addProducts from "../../config/schema/adminAddProduct.schema.js";
 import multer from "multer";
-import moment from "moment";
 
 // Setup multer for image upload
 const upload = multer({ storage: multer.memoryStorage() });
 export let multiple = upload.fields([
   { name: 'card_pic', maxCount: 1 },
-  { name: 'images', maxCount: 4 }  
+  { name: 'images[]', maxCount: 4 }  
 ]);
 
 const uploadSingleImage = async (file, path) => {
