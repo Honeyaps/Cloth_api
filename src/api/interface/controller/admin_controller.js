@@ -28,6 +28,7 @@ export const adminSignin = async (req, res) => {
 
 export const addProduct = async (req, res) => {
   try {
+    // Step 1: Prepare the product data
     const reqData = {
       productName: req.body.productName,
       description: req.body.description,
@@ -40,11 +41,16 @@ export const addProduct = async (req, res) => {
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
     };
 
+    // Step 2: Save the product in MongoDB
     const newProduct = new addProducts(reqData);
     const savedProduct = await newProduct.save();
 
-    const updatedProduct = await uploadImages(req.files, savedProduct._id);
-    SuccessResponse(res, "Product added successfully with images", updatedProduct);
+     // Upload images and update the product with image URLs
+     const updatedProduct = await uploadImages(req.files, savedProduct._id);
+    
+     // Respond to the user with the updated product
+     SuccessResponse(res, "Product added successfully with images", updatedProduct);
+
   } catch (error) {
     console.error("Error in addProduct:", error);
     return ErrorResponse(res, "An error occurred while adding the product.");
