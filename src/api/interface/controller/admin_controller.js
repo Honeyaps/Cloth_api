@@ -25,7 +25,6 @@ export const adminSignin = async (req, res) => {
   }
 };
 
-
 export const addProduct = async (req, res) => {
   try {
     const reqData = {
@@ -43,14 +42,17 @@ export const addProduct = async (req, res) => {
     const newProduct = new addProducts(reqData);
     const savedProduct = await newProduct.save();
 
-    // Upload images and update product with the URLs
-    await uploadImages(req.files, savedProduct._id);
+    // Immediately respond to the user with the new product
+    SuccessResponse(res, "Product added successfully", savedProduct);
 
-    // Fetch the updated product to include image URLs
-    const updatedProduct = await addProducts.findById(savedProduct._id);
-
-    // Respond to the user with the updated product
-    SuccessResponse(res, "Product added successfully", updatedProduct);
+    // Trigger the image upload asynchronously
+    // Use a try-catch block to handle errors in the background
+    try {
+       await uploadImages(req.files, savedProduct._id);
+    } catch (uploadError) {
+       console.error("Error uploading images:", uploadError);
+       // You might log this error to an external service
+    }
 
   } catch (error) {
     console.error("Error in addProduct:", error);
