@@ -32,7 +32,7 @@ export const addProduct = async (req, res) => {
       description: req.body.description,
       price: req.body.price,
       category: req.body.category,
-      quantity: req.body.quantity,
+      quantity: req.body.quantity,  
       card_pic: null,
       images: [], 
       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
@@ -44,7 +44,13 @@ export const addProduct = async (req, res) => {
 
     SuccessResponse(res, "Product added successfully, image upload in progress", savedProduct.toObject());
     // Trigger the image upload asynchronously
-    uploadImages(req.files, savedProduct._id);
+    uploadImages(req.files, savedProduct._id)
+    .then(() => {
+      console.log("Images uploaded successfully");
+    })
+    .catch((error) => {
+      console.error("Error uploading images:", error);
+    });
   } catch (error) {
     console.error("Error in addProduct:", error);
     return ErrorResponse(res, "An error occurred while adding the product");
