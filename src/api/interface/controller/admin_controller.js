@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import moment from "moment";
+import mongoose from "mongoose";
 import env from "../../../infrastructure/env.js";
 import { ErrorResponse, SuccessResponse } from "../../config/helpers/apiResponse.js";
 import addProducts from "../../config/schema/adminAddProduct.schema.js";
@@ -84,6 +85,25 @@ export const updateProduct = async (req, res) => {
   } catch (error) {
     console.error("Error updating product:", error);
     return ErrorResponse(res, "An error occurred while updating the product. Please try again later.");
+  }
+};
+
+export const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ErrorResponse(res, "Invalid product ID format.");
+    }
+    const deletedProduct = await addProducts.findByIdAndDelete(id);
+    if (!deletedProduct) {
+      return ErrorResponse(res, "Product not found.");
+    }
+
+    return SuccessResponse(res, "Product deleted successfully.");
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    return ErrorResponse(res, "An error occurred while deleting the product. Please try again later.");
   }
 };
 

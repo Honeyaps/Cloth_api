@@ -96,6 +96,13 @@ export const UserOtpForPassValidate = object({
   }),
 })
 
+export const deleteProductValidate = object({
+  body: object({
+    id: string()
+      .required("Product ID is required"),
+  }),
+})
+
 export const UserVerifyOtpValidate = object({
   body: object({
     email: string()
