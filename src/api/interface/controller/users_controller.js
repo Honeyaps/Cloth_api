@@ -198,9 +198,12 @@ export const UpdatePassword = async (req, res) => {
 
 export const getProductData = async (req, res) => {
   try {
-    const { page, limit, productName, category, priceRange } = req.body;
+    const { page, limit, productName, category, priceRange, productId } = req.body;
 
     const filter = {};
+    if (productId) {
+      filter._id = productId; 
+    }
     if (productName) {
       filter.productName = { $regex: new RegExp(productName, 'i') }; 
     }
@@ -216,6 +219,7 @@ export const getProductData = async (req, res) => {
     }
 
     const skip = (page - 1) * limit; 
+
     const product = await addProducts
       .find(filter) 
       .skip(skip)  
