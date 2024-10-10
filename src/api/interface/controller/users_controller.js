@@ -211,7 +211,7 @@ export const getProductData = async (req, res) => {
       filter.category = { $regex: new RegExp(category, 'i') }; 
     }
 
-    let sort = {};
+    let sort = { insert_date_time: -1 }; 
     if (priceRange === "h2l") {
       sort.price = -1; 
     } else if (priceRange === "l2h") {
@@ -266,9 +266,11 @@ export const getProductData = async (req, res) => {
                   email: user.email,
               },
               productDetail: {
+                  productId,
                   productName: product.productName,
                   price: product.price,
-                  image: product.image,
+                  card_pic: product.card_pic, 
+                  images: product.images, 
                   description: product.description,
                   category: product.category,
                   quantity: product.quantity,
@@ -281,7 +283,7 @@ export const getProductData = async (req, res) => {
             .populate({
                 path: 'productId',
                 model: 'addProduct_admin',
-                select: 'productName price image description category quantity',
+                select: 'productId productName price images card_pic description category quantity',
             })
             .populate({
                 path: 'userId',
