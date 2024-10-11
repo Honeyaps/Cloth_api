@@ -74,10 +74,7 @@ export const AddProductValidate = object({
 
     category: string()
       .min(1, "Category must be at least 1 characters long")
-      .max(50, "Category cannot exceed 20 characters"),
-
-    quantity: number()
-      .min(1, "Quantity must be at least 1"),
+      .max(50, "Category cannot exceed 20 characters"), 
   }),
 })
 

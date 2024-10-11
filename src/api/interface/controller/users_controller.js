@@ -198,7 +198,7 @@ export const UpdatePassword = async (req, res) => {
 
 export const getProductData = async (req, res) => {
   try {
-    const { page, limit, productName, category, priceRange, productId } = req.body;
+    const { page, limit, productName, category, priceRange, productId, size } = req.body;
 
     const filter = {};
     if (productId) {
@@ -209,27 +209,31 @@ export const getProductData = async (req, res) => {
     }
     if (category) {
       filter.category = { $regex: new RegExp(category, 'i') }; 
+    } if (size) {
+      filter.size = size; 
     }
 
     let sort = { insert_date_time: -1 }; 
-    if (priceRange === "h2l") {
-      sort.price = -1; 
-    } else if (priceRange === "l2h") {
-      sort.price = 1;  
-    }
 
-    const skip = (page - 1) * limit; 
+    if (priceRange === "h2l") {
+      sort = { price: -1 };
+    } else if (priceRange === "l2h") {
+      sort = { price: 1 };
+     
+    }
+    
+    const skip = (page - 1) * limit;
 
     const product = await addProducts
       .find(filter) 
       .skip(skip)  
-      .limit(limit)
-      .sort(sort)
-      .lean();     
+      .limit(limit)  
+      .sort(sort)    
+      .lean(); 
 
     return SuccessResponse(res, "Products found successfully.", { product });
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching products:", error);
     return ErrorResponse(res, "An error occurred while fetching the product data.");
   }
 };
@@ -273,7 +277,6 @@ export const getProductData = async (req, res) => {
                   images: product.images, 
                   description: product.description,
                   category: product.category,
-                  quantity: product.quantity,
               }
           };
           await cart.create(newCartItem);
@@ -283,7 +286,7 @@ export const getProductData = async (req, res) => {
             .populate({
                 path: 'productId',
                 model: 'addProduct_admin',
-                select: 'productId productName price images card_pic description category quantity',
+                select: 'productId productName price images card_pic description category',
             })
             .populate({
                 path: 'userId',

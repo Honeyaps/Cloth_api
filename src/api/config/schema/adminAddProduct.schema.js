@@ -8,7 +8,7 @@ const addProductSchema = new mongoose.Schema(
         card_pic: { type: String, default: null },
         images: { type: [String], default: [] }, 
         category: { type: String },
-        quantity: { type: Number },
+        size: { type: [String] },
         insert_date_time: { type: Date, default: Date.now },
         update_date_time: { type: Date },
     },

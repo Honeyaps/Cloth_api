@@ -35,19 +35,16 @@ export const addProduct = async (req, res) => {
       description: req.body.description,
       price: req.body.price,
       category: req.body.category,
-      quantity: req.body.quantity,  
+      size: req.body.size.split(','),  
       card_pic: null,
       images: [], 
       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
     };
+    
+  const newProduct = new addProducts(reqData);
+  const savedProduct = await newProduct.save();
 
-    // Step 2: Save the product in MongoDB
-    const newProduct = new addProducts(reqData);
-    const savedProduct = await newProduct.save();
-
-    console.log("Product saved:", savedProduct); // Log saved product
-  // Upload images if available
   const updatedProduct = await uploadImages(req.files, savedProduct._id);
   SuccessResponse(res, "Product added successfully with images", updatedProduct);
 
@@ -73,7 +70,7 @@ export const updateProduct = async (req, res) => {
       description: req.body.description || existingProduct.description,
       price: req.body.price || existingProduct.price,
       category: req.body.category || existingProduct.category,
-      quantity: req.body.quantity || existingProduct.quantity,
+      size: req.body.size ? req.body.size.split(',') : existingProduct.size, 
       card_pic: existingProduct.card_pic, 
       images: existingProduct.images,
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
