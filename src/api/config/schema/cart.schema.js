@@ -5,6 +5,7 @@ const cartSchema = new mongoose.Schema(
         userId: { type: String, required: true },
         productId: { type: String, required: true },
         quantity: { type: Number, required: true },
+        size: { type: String, required: true },
         insert_date_time: { type: Date, default: Date.now },
         status: { type: Number, default: 0 },
         softDeleteDate: { type: Date },

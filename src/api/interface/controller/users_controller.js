@@ -238,12 +238,12 @@ export const getProductData = async (req, res) => {
   }
 };
 
-
-
   export const addToCart = async (req, res) => {
     try {
         const userId = req.body.userId;
         const productId = req.body.productId;
+        let quantity = req.body.quantity || 1;
+        const size = req.body.size;
 
         const product = await addProducts.findById(productId);
         if (!product) {
@@ -254,15 +254,20 @@ export const getProductData = async (req, res) => {
             return ErrorResponse(res, "User not found.");
         }
 
-        const cartItem = await cart.findOne({ userId, productId });
+        const cartItem = await cart.findOne({ userId, productId, size });
         if (cartItem) {
-            cartItem.quantity += 1;
+            if (req.body.quantity) {
+                cartItem.quantity = quantity;
+            } else {
+                cartItem.quantity += 1;
+            }
             await cartItem.save();
         } else {
             const newCartItem = {
               userId,
               productId,
-              quantity: 1,
+              quantity,
+              size,
               status: 1,
               insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
               userDetail: {
@@ -282,20 +287,7 @@ export const getProductData = async (req, res) => {
           await cart.create(newCartItem);
         }
 
-        const updatedCart = await cart.find({ userId })
-            .populate({
-                path: 'productId',
-                model: 'addProduct_admin',
-                select: 'productId productName price images card_pic description category',
-            })
-            .populate({
-                path: 'userId',
-                model: 'signup_user',
-                select: 'username email'
-            })
-            .exec();
-
-        return SuccessResponse(res, "Product added to cart successfully.", { cart: updatedCart });
+        return SuccessResponse(res, "Product added to cart successfully.", { cartItem });
     } catch (error) {
         console.error(error);
         return ErrorResponse(res, "An error occurred while adding the product to cart.");
@@ -373,7 +365,8 @@ export const buyNow = async (req, res) => {
         productName: product.productName,
         description: product.description,
         price: product.price,
-        image: product.image,
+        card_pic: product.card_pic, 
+        images: product.images, 
         category: product.category,
         quantity: product.quantity,
       },
