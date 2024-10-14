@@ -254,7 +254,16 @@ export const getProductData = async (req, res) => {
             return ErrorResponse(res, "User not found.");
         }
 
-        const cartItem = await cart.findOne({ userId, productId, size });
+        let cartItem = await cart.findOne({ userId, productId, size });
+        if (cartItem && cartItem.status === -9) {
+            cartItem.status = 1;
+            cartItem.quantity = quantity;  
+            cartItem.size = size;  
+            cartItem.insert_date_time = moment().format("YYYY-MM-DD HH:mm:ss");  
+            await cartItem.save();
+            return SuccessResponse(res, "Product re-added to cart successfully.", { cartItem });
+        }
+
         if (cartItem) {
             if (req.body.quantity) {
                 cartItem.quantity = quantity;
@@ -296,9 +305,9 @@ export const getProductData = async (req, res) => {
 
 export const removeFromCart = async (req, res) => {
   try {
-    const { userId, productId } = req.body;
+    const { userId, productId, size } = req.body;
     
-    const cartItem = await cart.findOne({ userId, productId });
+    const cartItem = await cart.findOne({ userId, productId, size });
     if (!cartItem) {
       return ErrorResponse(res, "Cart item not found.");
     }
