@@ -345,7 +345,7 @@ export const removeFromCart = async (req, res) => {
 
 export const buyNow = async (req, res) => {
   try {
-    const { userId, productId, address, mobileno } = req.body;
+    const { userId, productId, address, mobileno, size } = req.body;
 
     const product = await addProducts.findById(productId);
     if (!product) {
@@ -355,16 +355,15 @@ export const buyNow = async (req, res) => {
     if (!user) {
       return ErrorResponse(res, "User not found.");
     }
-    const existingOrder = await order.findOne({ userId, productId });
-    if (existingOrder) {
-      return ErrorResponse(res, "Order for this product already exists.");
-    }
-
+    
     const orderData = {
       userId,
       productId,
       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
       address,
+      size,
+      totalQuantity: 1,
+      orderType: "buyNow",
       mobileno,
       userDetails: {
         username: user.username,
@@ -374,10 +373,9 @@ export const buyNow = async (req, res) => {
         productName: product.productName,
         description: product.description,
         price: product.price,
+        category: product.category,
         card_pic: product.card_pic, 
         images: product.images, 
-        category: product.category,
-        quantity: product.quantity,
       },
     };
     const newOrder = new order(orderData);
@@ -404,55 +402,44 @@ export const placeCartOrder = async (req, res) => {
       .populate({
         path: 'productId',  
         model: 'addProduct_admin',
-        select: 'productName price image description category', 
+        select: 'productName price card_pic images description category', 
       })
       .exec();
+
     if (cartItems.length === 0) {
       return ErrorResponse(res, "Cart is empty.");
     }
 
-    const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-    const categoryQuantities = {};
+    const totalBill = cartItems.reduce((sum, item) => sum + (item.productId.price * item.quantity), 0);
 
-    
-    cartItems.forEach(item => {
-      const category = item.productId.category; 
-      const quantity = item.quantity; 
-      if (!category) {
-        console.warn(`No category found for product ID: ${item.productId._id}`);
-        return; 
-      }
-      if (!categoryQuantities[category]) {
-        categoryQuantities[category] = 0; 
-      }
-      categoryQuantities[category] += quantity;
-    });
-
-    const orderData = {
+    const orderData = cartItems.map(item => ({
       userId,
-      mobileno,
-      address,
+      productId: item.productId._id,
+      totalQuantity: item.quantity,
+      size: item.size,
       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
-      totalQuantity,
+      mobileno,
+      orderType: "cart",
+      totalBill,
+      address,
       userDetails: {
         username: user.username,
         email: user.email,
       },
-      productDetails: cartItems.map(item => ({
+      productDetails: {
         productId: item.productId._id,
         productName: item.productId.productName,
-        description: item.productId.description,
         price: item.productId.price,
-        image: item.productId.image,
+        card_pic: item.productId.card_pic,
+        images: item.productId.images,
+        description: item.productId.description,
         category: item.productId.category,
-      })),
-      categoryQuantities,
-    };
-    const newOrder = new order(orderData);
-    await newOrder.save();
+      },
+    }));
+
+    const newOrders = await order.insertMany(orderData);
     await cart.deleteMany({ userId });
-    
-    return SuccessResponse(res, "Order placed successfully", { order: newOrder });
+    return SuccessResponse(res, "Order placed successfully", {order: newOrders,totalBill});
   } catch (error) {
     console.error(error);
     return ErrorResponse(res, "An error occurred while placing the order.");

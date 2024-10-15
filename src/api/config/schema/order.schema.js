@@ -9,6 +9,8 @@ const orderSchema = new mongoose.Schema(
     mobileno: { type: String, required: true },
     totalQuantity: { type: Number, default: 0 }, 
     categoryQuantities: { type: Object },
+    orderType: { type: String },
+    size: { type: String },
     userDetails: {
       type: Object,
       required: true
@@ -16,7 +18,8 @@ const orderSchema = new mongoose.Schema(
     productDetails: { 
       type: Object,
       required: true
-    }
+    },
+    totalBill: { type: Number }
   },
   {
     collection: "orders",
