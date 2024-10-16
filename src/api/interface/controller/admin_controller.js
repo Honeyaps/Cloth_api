@@ -121,9 +121,16 @@ export const getDashboardInsights = async (req, res) => {
     });
 
     const totalRevenue = await order.aggregate([
-      { $match: {insert_date_time: {$gte: start,$lte: end}}},
+      { $match: { insert_date_time: { $gte: start, $lte: end } } },
       { $unwind: "$productDetails" },
-      { $group: { _id: null, total: { $sum: "$productDetails.price"  } } }
+      {
+        $group: {
+          _id: null,
+          total: {
+            $sum: { $multiply: ["$productDetails.price", "$totalQuantity"] },
+          },
+        },
+      },
     ]);
 
     const totalProductsSold = await order.aggregate([
@@ -132,11 +139,16 @@ export const getDashboardInsights = async (req, res) => {
     ]);
 
     const soldOutcategories = await order.aggregate([
-      {$match: {insert_date_time: { $gte: start, $lte: end }}},
-      {$project: {categoryQuantities: { $objectToArray: "$categoryQuantities" }} },
-      {$unwind: "$categoryQuantities"},
-      {$group: {_id: "$categoryQuantities.k",total: { $sum: "$categoryQuantities.v" }} }
+      { $match: { insert_date_time: { $gte: start, $lte: end } } },
+      { $unwind: "$productDetails" }, // Unwind productDetails to work with individual products
+      {
+        $group: {
+          _id: "$productDetails.category", // Group by product category
+          total: { $sum: "$totalQuantity" }, // Sum totalQuantity per category
+        },
+      },
     ]);
+    
     
     const totalcategorieProducts = await addProducts.aggregate([
       { $group: { _id: '$category', count: { $sum: 1 } } }
@@ -147,8 +159,16 @@ export const getDashboardInsights = async (req, res) => {
     const revenueByCategory = await order.aggregate([
       { $match: { insert_date_time: { $gte: start, $lte: end } } },
       { $unwind: "$productDetails" },
-      { $group: { _id: "$productDetails.category", totalRevenue: { $sum: "$productDetails.price" } } }
+      {
+        $group: {
+          _id: "$productDetails.category",
+          totalRevenue: {
+            $sum: { $multiply: ["$productDetails.price", "$totalQuantity"] },
+          },
+        },
+      },
     ]);
+    
     
     return SuccessResponse(res, "Dashboard insights fetched successfully.", {
       totalUsers,
