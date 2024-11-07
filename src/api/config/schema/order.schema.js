@@ -5,6 +5,7 @@ const orderSchema = new mongoose.Schema(
     userId: { type: String, required: true },
     productId: { type: String },
     insert_date_time: { type: Date},
+    delivery_date_time: { type: Date},
     address: { type: String, required: true },
     mobileno: { type: String, required: true },
     totalQuantity: { type: Number, default: 0 }, 

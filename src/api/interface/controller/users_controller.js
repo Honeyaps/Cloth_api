@@ -198,17 +198,20 @@ export const UpdatePassword = async (req, res) => {
 
 export const getProductData = async (req, res) => {
   try {
-    const { page, limit, productName, category, priceRange, productId, size } = req.body;
+    const { page, limit, category, priceRange, productId, size } = req.body;
 
     const filter = {};
     if (productId) {
       filter._id = productId; 
     }
-    if (productName) {
-      filter.productName = { $regex: new RegExp(productName, 'i') }; 
-    }
     if (category) {
-      filter.category = { $regex: new RegExp(category, 'i') }; 
+      const isCategory = await addProducts.findOne({ category: { $regex: new RegExp(category, 'i') } });
+
+      if (isCategory) {
+        filter.category = { $regex: new RegExp(category, 'i') }; 
+      } else {
+        filter.productName = { $regex: new RegExp(category, 'i') };
+      }
     } if (size) {
       filter.size = size; 
     }
@@ -355,11 +358,15 @@ export const buyNow = async (req, res) => {
     if (!user) {
       return ErrorResponse(res, "User not found.");
     }
+
+    const insertDateTime = moment().format("YYYY-MM-DD HH:mm:ss"); // Current time for order placement
+    const deliveryDateTime = moment().add(5, 'days').format("YYYY-MM-DD HH:mm:ss"); 
     
     const orderData = {
       userId,
       productId,
-      insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+      insert_date_time: insertDateTime,
+      delivery_date_time: deliveryDateTime, 
       address,
       size,
       totalQuantity: 1,
@@ -398,7 +405,7 @@ export const placeCartOrder = async (req, res) => {
     }
 
     const cartItems = await cart
-      .find({ userId })
+      .find({ userId, status: 1 })
       .populate({
         path: 'productId',  
         model: 'addProduct_admin',
@@ -411,13 +418,16 @@ export const placeCartOrder = async (req, res) => {
     }
 
     const totalBill = cartItems.reduce((sum, item) => sum + (item.productId.price * item.quantity), 0);
+    const insertDateTime = moment().format("YYYY-MM-DD HH:mm:ss"); // Current time for order placement
+    const deliveryDateTime = moment().add(5, 'days').format("YYYY-MM-DD HH:mm:ss"); 
 
     const orderData = cartItems.map(item => ({
       userId,
       productId: item.productId._id,
       totalQuantity: item.quantity,
       size: item.size,
-      insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+      insert_date_time: insertDateTime,
+      delivery_date_time: deliveryDateTime,
       mobileno,
       orderType: "cart",
       totalBill,
@@ -438,7 +448,7 @@ export const placeCartOrder = async (req, res) => {
     }));
 
     const newOrders = await order.insertMany(orderData);
-    await cart.deleteMany({ userId });
+    await cart.deleteMany({ userId, status: 1 });
     return SuccessResponse(res, "Order placed successfully", {order: newOrders,totalBill});
   } catch (error) {
     console.error(error);
@@ -462,6 +472,33 @@ export const getCartItems = async (req, res) => {
     return ErrorResponse(res, "An error occurred while fetching products.");
   }
 }
+
+export const getOrderData = async (req, res) => {
+  try {
+    const { page, limit, userId } = req.body;
+
+    const filter = {};
+    if (userId) {
+      filter.userId = userId; 
+    }
+
+    let sort = { insert_date_time: -1 }; 
+    
+    const skip = (page - 1) * limit;
+
+    const product = await order
+      .find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    return SuccessResponse(res, "Products found successfully.", { product });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return ErrorResponse(res, "An error occurred while fetching the product data.");
+  }
+};
 
 
   

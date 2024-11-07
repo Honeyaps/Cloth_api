@@ -2,6 +2,7 @@ import {
   addToCart,
   buyNow,
   getCartItems,
+  getOrderData,
   getProductData,
   placeCartOrder,
   removeFromCart,
@@ -57,6 +58,8 @@ export const UserRoute = (router) => {
   router.post("/user/placeCartOrder", Auth, validateRequest(placeCartOrderValidate), placeCartOrder);
 
   router.post("/user/buynow", Auth, validateRequest(buyNowValidate), buyNow);
+
+  router.post("/user/getOrder", getOrderData);
 
  
 };
