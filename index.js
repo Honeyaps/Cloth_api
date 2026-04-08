@@ -33,6 +33,8 @@ app.get('/', (req, res) => {
 
 app.use("/v1", createRouter());
 
-app.listen(port, () => {
-  console.log(`APP listening on port:${port}`); 
-});
+// app.listen(port, () => {
+//   console.log(`APP listening on port:${port}`); 
+// });
+
+export default app;
