@@ -9,10 +9,7 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: env.MAILER_EMAIL,
     pass: env.MAILER_PASS,
-  },
-  tls: { 
-    rejectUnauthorized: false 
-  },
+  }
 });
 
 export async function sendPassResetEmail({ email, OTP }) {

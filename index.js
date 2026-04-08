@@ -4,8 +4,10 @@ import { dbconnection } from "./src/api/config/db.js";
 import { createRouter } from "./src/infrastructure/route.js";
 import env from "./src/infrastructure/env.js";
 
+
 const app = express();
 const port = env.APPPORT;
+
 app.use(
   cors({
     origin: "*",
@@ -14,18 +16,20 @@ app.use(
     allowedHeaders: "Content-Type, Authorization",
   })
 );
+
 app.use(express.json());
+
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });
 
 dbconnection();
+
 app.get('/', (req, res) => {
   console.log('Example endpoint hit');
   res.send('This is an example endpoint!');
 });
-
 
 app.use("/v1", createRouter());
 
