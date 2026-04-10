@@ -73,7 +73,7 @@ export async function uploadImages(files, productId) {
 
     console.error("Upload images error:", error);
 
-    throw new Error("Failed to upload product images");
+    throw error;
   }
 }
 

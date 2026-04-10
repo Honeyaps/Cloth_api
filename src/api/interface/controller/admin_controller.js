@@ -40,7 +40,7 @@ export const addProduct = async (req, res) => {
       images: [], 
       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
-      
+
     };
     
   const newProduct = new addProducts(reqData);
@@ -50,8 +50,13 @@ export const addProduct = async (req, res) => {
   SuccessResponse(res, "Product added successfully with images", updatedProduct);
 
   } catch (error) {
-    console.error("Error in addProduct:", error.message, error.stack);
-    return ErrorResponse(res, "An error occurred while adding the product.");
+     console.error("🔥 FULL ERROR:", error);
+
+  return res.status(500).json({
+    status: 0,
+    message: error.message,
+    // for demo
+  });
   }
 };
 
