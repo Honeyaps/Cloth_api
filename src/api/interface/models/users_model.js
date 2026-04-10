@@ -1,6 +1,7 @@
 import cloudinary from "../../config/cloudinary.js";
 import addProducts from "../../config/schema/adminAddProduct.schema.js";
 import multer from "multer";
+import streamifier from "streamifier";
 
 // Setup multer for image upload
 const upload = multer({ storage: multer.memoryStorage() });
@@ -10,19 +11,26 @@ export let multiple = upload.fields([
 ]);
 
 const uploadSingleImage = async (file) => {
-    try {
-         const result = await cloudinary.uploader.upload(
-      `data:${file.mimetype};base64,${file.buffer.toString("base64")}`,
-      {
-        folder: "products",
-      }
-    );
+  try {
+    return new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "products" },
+        (error, result) => {
+          if (error) {
+            console.error("Cloudinary upload error:", error);
+            reject(error);
+          } else {
+            resolve(result.secure_url);
+          }
+        }
+      );
 
-    return result.secure_url;
-    } catch (error) {
-        console.error("Cloudinary upload error:", error);
-        throw new Error(`Failed to upload image to Cloudinary`);
-    }
+      streamifier.createReadStream(file.buffer).pipe(stream);
+    });
+  } catch (error) {
+    console.error("UploadSingleImage error:", error);
+    throw error;
+  }
 };
 
 export async function uploadImages(files, productId) {
