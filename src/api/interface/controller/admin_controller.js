@@ -40,6 +40,7 @@ export const addProduct = async (req, res) => {
       images: [], 
       insert_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
       update_date_time: moment().format("YYYY-MM-DD HH:mm:ss"),
+      
     };
     
   const newProduct = new addProducts(reqData);
