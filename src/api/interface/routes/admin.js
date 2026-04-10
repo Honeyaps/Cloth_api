@@ -9,7 +9,7 @@ export const adminRoute = (router) => {
 
     router.post("/admin/signin", validateRequest(adminSigninValidate), adminSignin);
 
-    router.post("/admin/addProduct", Auth, validateRequest(AddProductValidate), multiple, addProduct);
+    router.post("/admin/addProduct", Auth, multiple,validateRequest(AddProductValidate), addProduct);
 
     router.post("/admin/updateProduct", Auth, validateRequest(UpdateProductValidate), multiple, updateProduct);
 
